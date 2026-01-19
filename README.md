@@ -4,20 +4,18 @@ Welcome to CPLN5920/MUSA5080! This guide will help you set up your personal port
 
 ## What You're Building
 
-By the end of this setup, you'll have:
 - Your own portfolio repository on GitHub
--  live website showcasing your work
-- A place to document your learning journey
+- A live website showcasing your work
+- A place to document your learning journey  
 
 ## Example:
 
-- This is an example Dr. Delmelle made. We are dropping the "weekly notes," but
+This is an example Dr. Delmelle made. We are dropping the "weekly notes," but
 everything else is the same: **[Dr. Delmelle's sample portfolio](https://ecdelmelle.github.io/MUSA-5080-instructor-portfolio/)** 
   
 
 ## Prerequisites
 
-Before starting, make sure you have:
 - [ ] A GitHub account ([create one here](https://github.com/join) if needed)
 - [ ] Quarto installed on your computer ([download here](https://quarto.org/docs/get-started/))
 - [ ] R and RStudio installed
