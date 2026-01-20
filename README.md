@@ -65,12 +65,6 @@ This step makes your portfolio visible as a live website!
 2. **Visit Your Site**: Click the link to see your live portfolio!
 3. **Bookmark It**: Save this URL - you'll submit it to Canvas
 
-### Step 4: Submit to Canvas
-
-1. Copy your live website URL
-2. Go to the Canvas assignment
-3. Submit your URL
-
 
 ## How to Work on Your Portfolio Locally
 
