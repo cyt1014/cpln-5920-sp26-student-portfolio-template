@@ -46,7 +46,7 @@ Now let's personalize it.
 4. Click **"Commit changes"**
 
 #### 1.3  Quarto Render
-1. Click render button in Rstudio or run `quarto render` in your command line
+1. Click render button in RStudio or run `quarto render` in your command line
 2. Check the docs folder for index.html file
 
 ### Step 2: Enable GitHub Pages
