@@ -10,8 +10,7 @@ Welcome to CPLN5920/MUSA5080! This guide will help you set up your personal port
 
 ## Example:
 
-This is an example Dr. Delmelle made. We are dropping the "weekly notes," but
-everything else is the same: **[Dr. Delmelle's sample portfolio](https://ecdelmelle.github.io/MUSA-5080-instructor-portfolio/)** 
+Here is one I made: **[Allison's sample portfolio](https://allisonlass.github.io/cpln-5902-student-site-example)** 
   
 
 ## Prerequisites
@@ -31,8 +30,8 @@ Now let's personalize it.
 #### 1.1 Edit Your Site Title
 1. Click on the `_quarto.yml` file
 2. Click the pencil icon (✏️) to edit
-3. Change `"Your Name - MUSA 5080 Portfolio"` to include your actual name
-4. Example: `"Jane Smith - MUSA 5080 Portfolio"`
+3. Change `"Your Name - CPLN 5920 Portfolio"` to include your actual name
+4. Example: `"Jane Smith - CPLN 5920 Portfolio"`
 5. Click **"Commit changes"** at the bottom
 
 #### 1.2 Update Your Homepage
@@ -69,36 +68,32 @@ This step makes your portfolio visible as a live website!
 2. **Visit Your Site**: Click the link to see your live portfolio!
 3. **Bookmark It**: Save this URL - you'll submit it to Canvas
 
-### Step 4: Submit to Canvas
-
-1. Copy your live website URL
-2. Go to the Canvas assignment
-3. Submit your URL
-
 
 ## How to Work on Your Portfolio Locally
 
 You can work entirely online, but I don't suggest it. To work on your computer 
 and see changes before publishing, you will use either use GitHub Desktop 
-or the terminal in RStudio (there are some other ways, too, but these are the
-easiest). You may be most comfortable with GitHub Desktop at first, but
+or the terminal in RStudio (there are some other ways, too, but these are probably
+the easiest). You may be most comfortable with GitHub Desktop at first, but
 eventually you will probably find it faster to use the terminal.
 
 In the terminal, this is some relevant code:
 
 ### Clone Your Repository
 ```bash
-# Replace [your-repo-url] with your actual repository URL
+# Replace [your-repo-url] with your actual repository URL. Not your website, but the github repo.
 git clone [your-repo-url]
 cd [your-repository-name]
 ```
 
 ### Make Changes and Preview
+This code renders your qmd file as a html file and saves it in your \docs folder
 ```bash
 # Edit your files using RStudio
 # Preview your changes:
-quarto render
+quarto render --to html
 quarto preview
+#Hit Cntrl-C or Cmd-C when you are done to stop the preview
 
 # When ready, save your changes:
 git add .
