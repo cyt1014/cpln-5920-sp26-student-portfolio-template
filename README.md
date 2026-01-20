@@ -89,6 +89,7 @@ cd [your-repository-name]
 # Preview your changes:
 quarto render
 quarto preview
+#Hit Cntrl-C or Cmd-C when you are done to stop the preview
 
 # When ready, save your changes:
 git add .
