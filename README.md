@@ -45,6 +45,9 @@ Now let's personalize it.
 4. Click **"Commit changes"**
 
 #### 1.3  Quarto Render
+This step creates a docs folder and an index.html file. You need to make sure
+these exist for your website to show up.
+
 1. Click render button in RStudio or run `quarto render` in your command line
 2. Check the docs folder for index.html file
 
@@ -78,6 +81,7 @@ the easiest). You may be most comfortable with GitHub Desktop at first, but
 eventually you will probably find it faster to use the terminal.
 
 In the terminal, this is some relevant code:
+**To follow the steps using the bash code, you need to install git (which is different GitHub Desktop) and finish the git client setup**
 
 ### Clone Your Repository
 ```bash
