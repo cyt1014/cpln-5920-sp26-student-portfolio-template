@@ -16,7 +16,7 @@ Advanced spatial analysis and data science for urban planning and public policy.
 
 ## About Me
 My name is Johnny Chen. I am the first year student in MCP, concentrating in PPD. I studied architecture as an undergraduate and have some experience with R and Python, but only at a very basic level. I hope to use this course to strengthen my ability to conduct spatial analysis using R.
+
 ## Contact
 - Email: [cyt1014@upenn.edu]
 - GitHub: [@cyt1014]
-C:\Users\cheny\Desktop\CPLN 5920 Public Policy Analytics
