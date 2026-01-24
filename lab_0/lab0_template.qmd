@@ -131,7 +131,6 @@ names(car_data)
 **Question:** Why did we need backticks around `Year of manufacture` but not around `year`?
 
 **Your answer:** Because `Year of manufacture` contains space, and it is not valid name in R environment. And year doesn't have space.
-```
 
 # Exercise 3: Creating New Columns
 
@@ -149,10 +148,11 @@ car_data <- car_data %>%
 # Look at your new columns
 #select(car_data, Model, year, age, Mileage, mileage_per_year)
 select(car_data, Model, year, age, Mileage, mileage_per_year)
+```
 
 ## 3.2 Categorize Cars
 
-
+```{r Categorize_Cars}
 # Create a price_category column where if price is < 15000, its is coded as budget, between 15000 and 30000 is midrange and greater than 30000 is luxury (use case_when)
 car_data <- car_data %>%
   mutate(price_category = case_when( Price < 15000 ~ "budget", 
@@ -167,7 +167,7 @@ select(car_data, price_category)
 
 ## 4.1 Basic Filtering
 
-
+```{r Basic_Filtering}
 # Find all Toyota cars
 toyota_cars <- car_data %>%
   filter(Manufacturer == "Toyota")
