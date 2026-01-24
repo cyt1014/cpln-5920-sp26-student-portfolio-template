@@ -8,7 +8,8 @@ website:
     left:
       - href: index.qmd
         text: Home
-
+      - href: lab_0/lab0_template.qmd
+        text: Lab 0
 format:
   html:
     theme: cosmo
