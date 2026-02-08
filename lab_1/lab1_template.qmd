@@ -365,7 +365,7 @@ tract_data_moe <- tract_data_pct_readable %>%
 # Create a flag for tracts with high MOE on any demographic variable
 # Use logical operators (| for OR) in an ifelse() statement
 high_moe_flag = ifelse(
-      (white_moe_pct > 20) & (black_moe_pct > 20) & (hispanic_moe_pct > 20),
+      (white_moe_pct > 15) & (black_moe_pct > 15) & (hispanic_moe_pct > 15),
       "High MOE",
       "GOOD"
     )
@@ -439,7 +439,13 @@ In the pattern analysis, High MOE tracts have lower average and median total pop
 
 **Executive Summary:**
 
-[Your integrated 4-paragraph summary here]
+I found the clearest and most reliable systematic pattern to be that, for sample-based ACS data, statistical reliability tends to decrease as the unit of analysis becomes smaller. For example, when analyzing median household income at the county level, 70.7% of California counties fall into the High Confidence category. However, when the analysis is refined to the census tract level, MOE percentages generally increase. In addition, for Los Angeles County—the most populous county—race/ethnicity estimates are relatively reliable at the county level, with low MOE. But once the analysis is further broken down into individual tracts within the county, many tracts are still classified as High MOE, likely because each tract has a smaller sample size and smaller subgroup counts.
+
+Based on my results, the communities most vulnerable to algorithmic bias are small-population tracts, because their ACS estimates have higher uncertainty and are more likely to be flagged as High MOE. In my tract-level pattern analysis, High MOE tracts also tend to have a higher Black share and a lower Hispanic/Latino share, while the White share differs very little between groups. However, I cannot claim these demographic patterns are direct causal drivers of bias risk. A more defensible interpretation is that algorithmic bias risk increases where the underlying inputs are statistically less reliable—often due to smaller effective sample sizes and smaller subgroup counts at the tract level—so algorithmic bias may be more prone to be seen in those areas.
+
+As the geographic scale becomes smaller (from counties to census tracts), uncertainty in ACS estimates generally increases. This is mainly because sample-based surveys have smaller effective sample sizes in small geographic units, and because some racial/ethnic groups have smaller absolute counts within a tract, which can substantially increase MOE percentages. At the same time, my results show that High MOE is more common in tracts with smaller populations and demographic compositions that differ from the overall average, suggesting that data quality issues and potential bias risk may be more concentrated in specific communities. I also found that ACS data quality may vary across states and counties; for example, Pennsylvania has no counties with High MOE (greater than 10%). Therefore, cross-regional conclusions should be confirmed by running the same tests in additional locations.
+
+When the Department encounters areas with high MOE, it should flag them as unreliable areas rather than directly using ACS data. In practice, the Department can set a clear “High MOE” threshold. When MOE is too high, the data should not be used for fully automated decisions. Instead, the Department should use more robust approaches, such as merging adjacent tracts, analyzing at a larger geographic scale, or validating results with multiple data sources. If high-MOE areas might be underestimated or overlooked by the algorithm, the Department should also add safeguards, such as human review, a minimum service floor, or targeted policy support.
 
 ## 6.3 Specific Recommendations
 
@@ -448,28 +454,81 @@ In the pattern analysis, High MOE tracts have lower average and median total pop
 ```{r recommendations-data}
 # Create a summary table using your county reliability data
 # Include: county name, median income, MOE percentage, reliability category
-
+county_reliability_table <- ca_reliability %>%
+  select(
+    county_name,
+    median_hh_incomeE,
+    median_hh_incomeM,
+    income_moe_pct,
+    reliability
+  )
 # Add a new column with algorithm recommendations using case_when():
 # - High Confidence: "Safe for algorithmic decisions"
 # - Moderate Confidence: "Use with caution - monitor outcomes"  
 # - Low Confidence: "Requires manual review or additional data"
-
+county_reliability_table %>%
+ mutate(
+    recommendation = case_when(
+      reliability == "High Confidence" ~ "Safe for algorithmic decisions",
+      reliability == "Moderate" ~ "Use with caution - monitor outcomes",
+      reliability == "Low Confidence" ~ "Requires manual review or additional data",
+      TRUE ~ "Unknown"
+    )) %>%
+arrange(desc(income_moe_pct)) %>%
 # Format as a professional table with kable()
+kable(
+    col.names = c(
+      "County",
+      "Median HH Income (Estimate)",
+      "Median HH Income (MOE)",
+      "Income MOE (%)",
+      "Reliability",
+      "Recommendation"
+    ),
+    caption = "Decision Framework: Algorithm Recommendations by County Data Reliability (ACS 2022 5-Year, California)",
+    format.args = list(big.mark = ",")  # Add commas to large numbers
+  )
 ```
 
 **Key Recommendations:**
 
 **Your Task:** Use your analysis results to provide specific guidance to the department.
 
-1. **Counties suitable for immediate algorithmic implementation:** [List counties with high confidence data and explain why they're appropriate]
+1. **Counties suitable for immediate algorithmic implementation:** 
+```{r high confidence}
+high_conf_counties <- ca_reliability %>%
+  filter(reliability == "High Confidence") %>%
+  arrange(income_moe_pct) %>%         
+  select(county_name, median_hh_incomeE, income_moe_pct)
+high_conf_counties %>% pull(county_name)
+```
+These counties have relatively low MOE percentages, which indicates higher statistical reliability in the ACS estimates. Therefore, these counties are considered “Safe for algorithmic decisions.”
 
-2. **Counties requiring additional oversight:** [List counties with moderate confidence data and describe what kind of monitoring would be needed]
+2. **Counties requiring additional oversight:** 
+```{r moderate}
+moderate_counties <- ca_reliability %>%
+  filter(reliability == "Moderate") %>%
+  arrange(income_moe_pct) %>%         
+  select(county_name, median_hh_incomeE, income_moe_pct)
+moderate_counties %>% pull(county_name)
+```
+Moderate Confidence counties (MOE% 5–10%) are still usable, but their uncertainty requires additional oversight. The Department should validate key inputs using multiple data sources. For counties near decision thresholds, human review should be applied. In addition, for these uncertain counties, decisions should not rely on data alone; instead, they should incorporate local conditions and combine real-world context with the data when making decisions.
 
-3. **Counties needing alternative approaches:** [List counties with low confidence data and suggest specific alternatives - manual review, additional surveys, etc.]
+3. **Counties needing alternative approaches:** 
+```{r low confidence}
+low_conf_counties <- ca_reliability %>%
+  filter(reliability == "Low Confidence") %>%
+  arrange(income_moe_pct) %>%         
+  select(county_name, median_hh_incomeE, income_moe_pct)
+low_conf_counties %>% pull(county_name)
+```
+For Low Confidence counties, the Department should avoid direct algorithmic use of the ACS estimate. First, require human review for cases where this variable could change the decision, and validate the ACS values with other sources. Second, decisions should be based on multiple data sources rather than ACS alone, and the Department should document which source is used when ACS reliability is low. Finally, monitor algorithm outcomes monthly or quarterly for unusual shifts, and recompute reliability categories annually when new ACS data are released.
 
 ## Questions for Further Investigation
 
-[List 2-3 questions that your analysis raised that you'd like to explore further in future assignments. Consider questions about spatial patterns, time trends, or other demographic factors.]
+1. Are High MOE tracts spatially clustered within each selected county, and do they align with specific place types such as low-density areas or mountainous regions?
+2. How stable are these MOE patterns over time?
+3. Beyond race/ethnicity, which demographic factors are most associated with high uncertainty. For example poverty rate, age structure, housing tenure,or educational?
 
 # Technical Notes
 
@@ -478,15 +537,15 @@ In the pattern analysis, High MOE tracts have lower average and median total pop
 - Retrieved via tidycensus R package on [date]
 
 **Reproducibility:** 
-- All analysis conducted in R version [your version]
-- Census API key required for replication
-- Complete code and documentation available at: [your portfolio URL]
+- All analysis conducted in R version 4.5.2
+- Census API key required for replication 9ca60c462873e74921e40ce793d8dfbfcd324e08
+- Complete code and documentation available at: https://cyt1014.github.io/cpln-5920-sp26-student-portfolio-template/
 
 **Methodology Notes:**
-[Describe any decisions you made about data processing, county selection, or analytical choices that might affect reproducibility]
+I selected California (CA) as the study state. For county selection, I chose the most populous county within each reliability category (High, Moderate, Low) to avoid cases with very few census tracts. For tract-level classification, I defined a tract as “Low Confidence” only when the MOE% for all three race/ethnicity variables exceeded 15% (White, Black, and Hispanic all had MOE% > 15%).
 
 **Limitations:**
-[Note any limitations in your analysis - sample size issues, geographic scope, temporal factors, etc.]
+This analysis is limited to California. The investigation of race/ethnicity MOE patterns is based on only three large-population counties, so the findings may not be generalizable. In addition, the analysis uses ACS data from a single year/period, which may not capture recent changes.
 
 ---
 
