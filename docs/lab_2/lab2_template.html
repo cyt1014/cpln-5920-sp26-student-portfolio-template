@@ -4236,16 +4236,23 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 </table>
 </div>
 </div>
-<p><strong>Questions to answer:</strong> - What income threshold did you choose and why?</p>
+<p><strong>Questions to answer:</strong></p>
+<ul>
+<li>What income threshold did you choose and why?</li>
+</ul>
 <p>I define “low income” as census tracts with median household income at or below 80% of the statewide median tract income (ACS 2022). I chose the 80% cutoff because HUD commonly uses ≤80% of Area Median Income as a policy threshold for low-income eligibility in housing programs.</p>
 <ul>
 <li>What elderly population threshold did you choose and why?</li>
 </ul>
 <p>I define “high-elderly” tracts as those with a 65+ population share ≥ 14%. This threshold follows WHO’s commonly cited typology, which describes a population as aged when more than 14% of residents are aged 65 and above. Some references also use 21% as the threshold for a super-aged society. For this statewide tract-level analysis, I adopt the 14% threshold to maintain a defensible standard while avoiding an overly restrictive definition.</p>
 <ul>
-<li><p>How many tracts meet your vulnerability criteria? 525; 243 (When Threshold=21%)</p></li>
-<li><p>What percentage of PA census tracts are considered vulnerable by your definition? 15.52%; 7.18%(When Threshold=21%)</p></li>
+<li>How many tracts meet your vulnerability criteria?</li>
 </ul>
+<p>525; 243 (When Threshold=21%)</p>
+<ul>
+<li>What percentage of PA census tracts are considered vulnerable by your definition?</li>
+</ul>
+<p>15.52%; 7.18%(When Threshold=21%)</p>
 <hr>
 </section>
 <section id="step-4-calculate-distance-to-hospitals" class="level4">
@@ -4303,7 +4310,19 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 </div>
 <p><strong>Requirements:</strong> - Use an appropriate projected coordinate system for Pennsylvania - Calculate distances in miles<br>
 - Explain why you chose your projection</p>
-<p><strong>Questions to answer:</strong> - What is the average distance to the nearest hospital for vulnerable tracts? 4.59 - What is the maximum distance? 25.65 - How many vulnerable tracts are more than 15 miles from the nearest hospital? 13</p>
+<p><strong>Questions to answer:</strong></p>
+<ul>
+<li>What is the average distance to the nearest hospital for vulnerable tracts?</li>
+</ul>
+<p>4.59</p>
+<ul>
+<li>What is the maximum distance?</li>
+</ul>
+<p>25.65</p>
+<ul>
+<li>How many vulnerable tracts are more than 15 miles from the nearest hospital?</li>
+</ul>
+<p>13</p>
 <hr>
 </section>
 <section id="step-5-identify-underserved-areas" class="level4">
@@ -4349,7 +4368,19 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 </table>
 </div>
 </div>
-<p><strong>Questions to answer:</strong> - How many tracts are underserved? 13 - What percentage of vulnerable tracts are underserved? 5.35% - Does this surprise you? Why or why not? I got 5.35%, which is somewhat surprising because I expected a higher share. This maybe suggests that most vulnerable tracts are actually within the service distance of hospitals.</p>
+<p><strong>Questions to answer:</strong></p>
+<ul>
+<li>How many tracts are underserved?</li>
+</ul>
+<p>13</p>
+<ul>
+<li>What percentage of vulnerable tracts are underserved?</li>
+</ul>
+<p>5.35%</p>
+<ul>
+<li>Does this surprise you? Why or why not?</li>
+</ul>
+<p>I got 5.35%, which is somewhat surprising because I expected a higher share. This maybe suggests that most vulnerable tracts are actually within the service distance of hospitals.</p>
 <hr>
 </section>
 <section id="step-6-aggregate-to-county-level" class="level4">
@@ -4989,7 +5020,14 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 </div>
 <p><strong>Required county-level statistics:</strong> - Number of vulnerable tracts - Number of underserved tracts<br>
 - Percentage of vulnerable tracts that are underserved - Average distance to nearest hospital for vulnerable tracts - Total vulnerable population</p>
-<p><strong>Questions to answer:</strong> - Which 5 counties have the highest percentage of underserved vulnerable tracts? COLUMBIA, MONROE, PERRY, SULLIVAN,(100%); BRADFORD, CAMERON, CLINTON, DAUPHIN(50%) - Which counties have the most vulnerable people living far from hospitals? CLEARFIELD</p>
+<p><strong>Questions to answer:</strong></p>
+<ul>
+<li>Which 5 counties have the highest percentage of underserved vulnerable tracts?</li>
+</ul>
+<p>COLUMBIA, MONROE, PERRY, SULLIVAN,(100%); BRADFORD, CAMERON, CLINTON, DAUPHIN(50%)</p>
+<ul>
+<li>Which counties have the most vulnerable people living far from hospitals? CLEARFIELD</li>
+</ul>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>county_stats <span class="sc">%&gt;%</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(vulnerable_pop_far_from_hospital))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -5027,8 +5065,9 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 </div>
 </div>
 <ul>
-<li>Are there any patterns in where underserved counties are located? Yes, the distribution of underserved counties shows a strong spatial pattern and continuity. They are concentrated in central and northern Pennsylvania, while there are relatively few in the southeastern and southwestern parts of the state. This may indicate that limited healthcare access is more likely to occur in inland counties with lower population density and a more sparse distribution of hospitals.</li>
+<li>Are there any patterns in where underserved counties are located?</li>
 </ul>
+<p>Yes, the distribution of underserved counties shows a strong spatial pattern and continuity. They are concentrated in central and northern Pennsylvania, while there are relatively few in the southeastern and southwestern parts of the state. This may indicate that limited healthcare access is more likely to occur in inland counties with lower population density and a more sparse distribution of hospitals.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>counties_with_stats <span class="ot">&lt;-</span> pa_counties_proj <span class="sc">%&gt;%</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(county_stats, <span class="at">by =</span> <span class="st">&quot;COUNTY_NAM&quot;</span>)</span>
@@ -5434,7 +5473,10 @@ $ geometry       &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((-8575060 48..., MULTIP
 <span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="fu">st_crs</span>(parks)</span>
 <span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="fu">st_crs</span>(census_tracts)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p><strong>Questions to answer:</strong> - What dataset did you choose and why?</p>
+<p><strong>Questions to answer:</strong></p>
+<ul>
+<li>What dataset did you choose and why?</li>
+</ul>
 <p>I selected three spatial datasets. I used PPR Properties as the parks layer, and Census tracts as the study area and the base unit for the later analysis. This combination fits my Green Space Equity topic because I need park locations, and tract boundaries to compare conditions across different areas.</p>
 <ul>
 <li>What is the data source and date?</li>

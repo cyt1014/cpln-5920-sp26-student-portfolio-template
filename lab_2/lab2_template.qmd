@@ -215,6 +215,7 @@ knitr::kable(
 ```
 
 **Questions to answer:**
+
 - What income threshold did you choose and why?
 
 I define “low income” as census tracts with median household income at or below 80% of the statewide median tract income (ACS 2022). I chose the 80% cutoff because HUD commonly uses ≤80% of Area Median Income as a policy threshold for low-income eligibility in housing programs.
@@ -223,9 +224,13 @@ I define “low income” as census tracts with median household income at or be
 
 I define “high-elderly” tracts as those with a 65+ population share ≥ 14%. This threshold follows WHO’s commonly cited typology, which describes a population as aged when more than 14% of residents are aged 65 and above. Some references also use 21% as the threshold for a super-aged society. For this statewide tract-level analysis, I adopt the 14% threshold to maintain a defensible standard while avoiding an overly restrictive definition.
 
-- How many tracts meet your vulnerability criteria? 525; 243 (When Threshold=21%)	
+- How many tracts meet your vulnerability criteria? 
 
-- What percentage of PA census tracts are considered vulnerable by your definition? 15.52%; 7.18%(When Threshold=21%)
+525; 243 (When Threshold=21%)	
+
+- What percentage of PA census tracts are considered vulnerable by your definition? 
+
+15.52%; 7.18%(When Threshold=21%)
 
 ---
 
@@ -271,9 +276,18 @@ knitr::kable(
 - Explain why you chose your projection 
 
 **Questions to answer:**
-- What is the average distance to the nearest hospital for vulnerable tracts? 4.59
-- What is the maximum distance? 25.65
-- How many vulnerable tracts are more than 15 miles from the nearest hospital? 13
+
+- What is the average distance to the nearest hospital for vulnerable tracts? 
+
+4.59
+
+- What is the maximum distance? 
+
+25.65
+
+- How many vulnerable tracts are more than 15 miles from the nearest hospital? 
+
+13
 
 ---
 
@@ -305,9 +319,17 @@ knitr::kable(
 ```
 
 **Questions to answer:**
-- How many tracts are underserved? 13
-- What percentage of vulnerable tracts are underserved? 5.35%
+
+- How many tracts are underserved? 
+
+13
+
+- What percentage of vulnerable tracts are underserved? 
+
+5.35%
+
 - Does this surprise you? Why or why not? 
+
 I got 5.35%, which is somewhat surprising because I expected a higher share. This maybe suggests that most vulnerable tracts are actually within the service distance of hospitals.
 
 ---
@@ -355,16 +377,22 @@ knitr::kable(
 - Total vulnerable population
 
 **Questions to answer:**
+
 - Which 5 counties have the highest percentage of underserved vulnerable tracts? 
+
 COLUMBIA, MONROE, PERRY, SULLIVAN,(100%); BRADFORD, CAMERON, CLINTON, DAUPHIN(50%)
+
 - Which counties have the most vulnerable people living far from hospitals? CLEARFIELD
 ```{r}
 county_stats %>%
   arrange(desc(vulnerable_pop_far_from_hospital))
 head(county_stats)
 ```
+
 - Are there any patterns in where underserved counties are located?
+
 Yes, the distribution of underserved counties shows a strong spatial pattern and continuity. They are concentrated in central and northern Pennsylvania, while there are relatively few in the southeastern and southwestern parts of the state. This may indicate that limited healthcare access is more likely to occur in inland counties with lower population density and a more sparse distribution of hospitals.
+
 ```{r}
 counties_with_stats <- pa_counties_proj %>%
   left_join(county_stats, by = "COUNTY_NAM")
@@ -724,6 +752,7 @@ st_crs(census_tracts)
 ```
 
 **Questions to answer:**
+
 - What dataset did you choose and why? 
 
 I selected three spatial datasets. I used PPR Properties as the parks layer, and Census tracts as the study area and the base unit for the later analysis. This combination fits my Green Space Equity topic because I need park locations, and tract boundaries to compare conditions across different areas.
