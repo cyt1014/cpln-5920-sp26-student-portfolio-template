@@ -1,0 +1,15 @@
+{
+  "hash": "8b67c7e4c5d6f22bbb79756903875609",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Lab 2: Spatial Analysis and Visualization\"\nsubtitle: \"Healthcare Access and Equity in Pennsylvania\"\nauthor: \"Chen Yitao\"\ndate: today\nformat: \n  html:\n    code-fold: false\n    toc: true\n    toc-location: left\n    theme: cosmo\n    embed-resources: true\nexecute:\n  warning: false\n  message: false\n---\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(sf)\nlibrary(tidyverse)\nlibrary(tigris)\nlibrary(tidycensus)\nlibrary(scales)\nlibrary(patchwork)\nlibrary(here)\n\nraw <- read_csv(\n  \"C:/Users/cheny/Desktop/PPA Mid Data/opa_properties_public.csv\") \n\nclean <- raw %>%\n  mutate(\n    category_code_description = str_to_upper(str_squish(category_code_description)),\n\n    # 如果你的成交日期列不是 sale_date，请把 sale_date 换成真实列名\n    sale_date = ymd_hms(as.character(sale_date), tz = \"America/New_York\"),\n    sale_year = year(sale_date),\n\n    mailing_city_state = str_to_upper(str_squish(mailing_city_state))\n  ) %>%\n  filter(\n    dplyr::between(sale_year, 2023, 2024),\n    category_code_description == \"SINGLE FAMILY\",\n    mailing_city_state == \"PHILADELPHIA PA\"\n  ) %>%\n  tidyr::drop_na(market_value, sale_date) %>%\n  filter(market_value > 0)\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

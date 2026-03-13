@@ -1,0 +1,56 @@
+---
+title: "Lab 2: Spatial Analysis and Visualization"
+subtitle: "Healthcare Access and Equity in Pennsylvania"
+author: "Chen Yitao"
+date: today
+format: 
+  html:
+    code-fold: false
+    toc: true
+    toc-location: left
+    theme: cosmo
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+```{r}
+#| echo: true
+#| output: true
+#| include: true
+library(sf)
+library(tidyverse)
+library(tigris)
+library(tidycensus)
+library(scales)
+library(patchwork)
+library(here)
+
+raw <- read_csv(
+  "C:/Users/cheny/Desktop/PPA Mid Data/opa_properties_public.csv") 
+
+clean <- raw %>%
+  mutate(
+    sale_year = lubridate::year(sale_date)
+  ) %>%
+  filter(
+    dplyr::between(sale_year, 2023, 2024),
+    category_code_description %in% c("SINGLE FAMILY", "MULTI FAMILY"),
+    mailing_city_state == "PHILADELPHIA PA",
+    number_of_bathrooms > 0,
+    number_of_bedrooms  > 0,
+  ) %>%
+  tidyr::drop_na(sale_price, sale_date) %>%
+  filter(sale_price > 10000)
+
+ggplot(clean, aes(x = sale_price)) +
+  geom_histogram(bins = 60, fill = "steelblue", color = "white", alpha = 0.85) +
+  scale_x_log10(labels = scales::dollar) +
+  labs(
+    title = "Distribution of Sale Price (log scale)",
+    x = "Sale Price ($, log10 scale)",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
+```
