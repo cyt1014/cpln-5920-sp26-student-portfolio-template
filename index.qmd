@@ -1,0 +1,22 @@
+---
+title: "MUSA 5080 Portfolio"
+---
+
+# Welcome to My Portfolio
+
+This portfolio documents my learning journey in Public Policy Analytics (MUSA 5080).
+
+## About This Course
+Advanced spatial analysis and data science for urban planning and public policy.
+
+## Portfolio Structure
+- **Weekly Notes:** My learning reflections and key concepts
+- **Labs:** Completed assignments and analyses
+- **Final Project:** Capstone modeling challenge
+
+## About Me
+My name is Johnny Chen. I am the first year student in MCP, concentrating in PPD. I studied architecture as an undergraduate and have some experience with R and Python, but only at a very basic level. I hope to use this course to strengthen my ability to conduct spatial analysis using R.
+
+## Contact
+- Email: [cyt1014@upenn.edu]
+- GitHub: [@cyt1014]
