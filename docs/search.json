@@ -285,12 +285,5 @@
     "title": "Lab 1: Census Data Quality for Policy Decisions",
     "section": "Submission Checklist",
     "text": "Submission Checklist\nBefore submitting your portfolio link on Canvas:\n\nAll code chunks run without errors\nAll “[Fill this in]” prompts have been completed\nTables are properly formatted and readable\nExecutive summary addresses all four required components\nPortfolio navigation includes this assignment\nCensus API key is properly set\nDocument renders correctly to HTML\n\nRemember: Submit your portfolio URL on Canvas, not the file itself. Your assignment should be accessible at your-portfolio-url/labs/lab_1/your_file_name.html"
-  },
-  {
-    "objectID": "lab_3/lab_3.html",
-    "href": "lab_3/lab_3.html",
-    "title": "Midterm Challenge: Philadelphia Housing Price Prediction",
-    "section": "",
-    "text": "This page links to the full appendix.\nOpen the full appendix"
   }
 ]
