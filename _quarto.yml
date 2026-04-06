@@ -20,7 +20,6 @@ website:
             text: "Midterm Challenge: Philadelphia Housing Price Prediction"
           - href: lab_4/lab4.html
             text: "Lab 4: Spatial Predictive Analysis"
-            
 format:
   html:
     theme: cosmo
