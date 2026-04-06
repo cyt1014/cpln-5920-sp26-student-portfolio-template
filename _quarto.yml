@@ -18,7 +18,7 @@ website:
             text: "Lab 2: Spatial Analysis and Visualization"
           - href: lab_3/Daisy_Yuan_Appendix.html
             text: "Midterm Challenge: Philadelphia Housing Price Prediction"
-          - href: lab_4/lab4.qmd
+          - href: lab_4/lab_4.qmd
             text: "Lab 4: Spatial Predictive Analysis"
 format:
   html:
