@@ -1,2 +1,7 @@
 /.quarto/
 **/*.quarto_ipynb
+mid/data/assessments.csv
+mid/data/cv_m7.rds
+mid/data/opa_properties_public.csv
+mid/data/opa_properties_public.gdb/
+mid/data/opa_properties_public.geojson
