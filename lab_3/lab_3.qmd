@@ -1,0 +1,10 @@
+---
+title: "Midterm Challenge: Philadelphia Housing Price Prediction"
+---
+
+This page links to the full appendix.
+
+[Open the full appendix](lab_3/Daisy_Yuan_Appendix.html)
+
+```{=html}
+<iframe src="lab_3/Daisy_Yuan_Appendix.html" width="100%" height="900"></iframe>

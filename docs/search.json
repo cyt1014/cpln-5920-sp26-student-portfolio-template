@@ -285,5 +285,12 @@
     "title": "Lab 2: Spatial Analysis and Visualization",
     "section": "Submission Requirements",
     "text": "Submission Requirements\nWhat to submit:\n\nRendered HTML document posted to your course portfolio with all code, outputs, maps, and text\n\nUse embed-resources: true in YAML so it’s a single file\nAll code should run without errors\nAll maps and charts should display correctly\n\nSubmit the correct and working links of your assignment on Canvas"
+  },
+  {
+    "objectID": "lab_3/lab_3.html",
+    "href": "lab_3/lab_3.html",
+    "title": "Midterm Challenge: Philadelphia Housing Price Prediction",
+    "section": "",
+    "text": "This page links to the full appendix.\nOpen the full appendix"
   }
 ]
