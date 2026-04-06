@@ -5,6 +5,9 @@ resources:
   - Daisy_Yuan_Appendix_files/**
 ---
 
+This page links to the full appendix.
+
+[Open the full appendix](Daisy_Yuan_Appendix.html)
+
 ```{=html}
-<iframe src="Daisy_Yuan_Appendix.html" width="150%" height="900"></iframe>
-```
+<iframe src="Daisy_Yuan_Appendix.html" width="120%" height="900"></iframe>
