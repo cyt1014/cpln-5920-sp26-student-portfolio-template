@@ -1,0 +1,786 @@
+---
+title: "Lab 4: Spatial Predictive Analysis"
+subtitle: "Analyzing 311 Violations"
+author: "Johnny"
+date: today
+format: 
+  html:
+    code-fold: false
+    toc: true
+    toc-location: left
+    theme: cosmo
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+## Step 1: Choose Your 311 Violation Type
+
+### Getting the Data
+
+ <https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd/about_data>
+ 
+I chose Vacant and Abandoned Building Reports as the focus of this analysis because it is relatively easy to understand and easier to interpret than some other 311 request types. At the beginning, I expected this pattern to be related to factors such as neighborhood economic conditions and the age of the housing stock. Based on that assumption, I use this project to examine the spatial distribution of vacant and abandoned building reports across Chicago and to explore whether their pattern shows clear clustering and neighborhood differences.
+
+---
+
+## Step 2: Complete the Analysis
+
+Using the class exercise as your template, adapt the code to analyze your chosen 311 violation type.
+
+### What to Include
+
+Work through all major sections of the analysis:
+
+#### Part 1: Data Loading & Exploration
+- Load your 311 data and Chicago spatial boundaries
+- Create visualizations showing the spatial distribution of your violation type
+- Describe patterns you observe
+
+```{r setup}
+#| echo: false
+#| output: false
+#| message: false
+#| warning: false
+#| 
+# Load required packages
+library(tidyverse)      # Data manipulation
+library(sf)             # Spatial operations
+library(here)           # Relative file paths
+library(viridis)        # Color scales
+library(terra)          # Raster operations (replaces 'raster')
+library(spdep)          # Spatial dependence
+library(FNN)            # Fast nearest neighbors
+library(MASS)           # Negative binomial regression
+library(patchwork)      # Plot composition (replaces grid/gridExtra)
+library(knitr)          # Tables
+library(kableExtra)     # Table formatting
+library(classInt)       # Classification intervals
+library(tidycensus)
+library(tigris)
+library(spatstat.geom)
+library(spatstat.explore)
+
+# Create consistent theme for visualizations
+theme_crime <- function(base_size = 11) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      plot.title = element_text(face = "bold", size = base_size + 1),
+      plot.subtitle = element_text(color = "gray30", size = base_size - 1),
+      legend.position = "right",
+      panel.grid.minor = element_blank(),
+      axis.text = element_blank(),
+      axis.title = element_blank()
+    )
+}
+theme_set(theme_crime())
+```
+
+```{r load-boundaries}
+#| echo: false
+#| output: false
+#| message: false
+#| warning: false
+# Load Chicago boundary
+chicagoBoundary <- 
+  st_read("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/Chapter5/chicagoBoundary.geojson") %>%
+  st_transform("ESRI:102271")
+
+# Load Chicago Community Areas for later spatial cross-validation
+communityAreas <- st_read(here("data", "Boundaries_-_Community_Areas_20260405.geojson")) %>%
+  st_transform("ESRI:102271")
+
+names(communityAreas)
+
+cat("Chicago boundary loaded successfully.\n")
+cat("Community areas loaded successfully.\n")
+cat("CRS:", st_crs(chicagoBoundary)$input, "\n")
+cat("Number of community areas:", nrow(communityAreas), "\n")
+
+# Load Data
+vacant_raw <- read_csv(here("data", "311_Service_Requests_-_Vacant_and_Abandoned_Buildings_Reported_-_Historical_20260331.csv"))
+
+# Check column names and structure
+glimpse(vacant_raw)
+
+date_col <- "DATE SERVICE REQUEST WAS RECEIVED"
+lat_col  <- "LATITUDE"
+lon_col  <- "LONGITUDE"
+
+cat("Date column:", date_col, "\n")
+cat("Latitude column:", lat_col, "\n")
+cat("Longitude column:", lon_col, "\n")
+
+# Clean Data
+vacant_2017 <- vacant_raw %>%
+  mutate(report_date = as.Date(.data[[date_col]], format = "%m/%d/%Y")) %>%
+  filter(
+    report_date >= as.Date("2017-01-01"),
+    report_date <  as.Date("2018-01-01")
+  ) %>%
+  filter(
+    !is.na(.data[[lat_col]]),
+    !is.na(.data[[lon_col]])
+  )
+
+cat("Total rows in original CSV:", nrow(vacant_raw), "\n")
+cat("Rows in 2017 with valid coordinates:", nrow(vacant_2017), "\n")
+
+# Convert the filtered 2017 data to sf points and transform to the class projection
+vacant_buildings <- vacant_2017 %>%
+  st_as_sf(coords = c(lon_col, lat_col), crs = 4326) %>%
+  st_transform("ESRI:102271")
+
+cat("Number of 2017 vacant/abandoned building reports:", nrow(vacant_buildings), "\n")
+cat("CRS:", st_crs(vacant_buildings)$input, "\n")
+
+```
+
+```{r visualize-points}
+#| fig-width: 10
+#| fig-height: 5
+# Simple point map
+p1 <- ggplot() +
+  geom_sf(data = chicagoBoundary, fill = "gray95", color = "gray60") +
+  geom_sf(data = vacant_buildings, color = "#d62828", size = 0.2, alpha = 0.4) +
+  labs(
+    title = "Vacant and Abandoned Buildings",
+    subtitle = paste0("Chicago 2017, n = ", nrow(vacant_buildings))
+  )
+p1
+
+# Density surface using modern syntax
+p2 <- ggplot() +
+  geom_sf(data = chicagoBoundary, fill = "gray95", color = "gray60") +
+  geom_density_2d_filled(
+    data = data.frame(st_coordinates(vacant_buildings)),
+    aes(X, Y),
+    alpha = 0.7,
+    bins = 8
+  ) +
+  scale_fill_viridis_d(
+    option = "plasma",
+    direction = -1,
+    guide = "none"
+  ) +
+  labs(
+    title = "Density Surface",
+    subtitle = "Spatial concentration of Vacant and Abandoned Buildings"
+  )
+p2
+
+# Combine plots using patchwork (modern approach)
+p1 + p2 + 
+  plot_annotation(
+    title = "Spatial Distribution of Vacant and Abandoned Buildings in Chicago",
+    tag_levels = "A"
+  )
+
+```
+In this first step, I loaded the 2017 Vacant and Abandoned Building Reports and mapped them across Chicago. I also created a simple density surface to get a clearer sense of where reports were concentrated. This step was important because I needed to understand the overall spatial pattern before moving into grid analysis and modeling. From the maps, Vacant and abandoned building reports are not evenly distributed across Chicago. Instead, they are concentrated mainly in the southern and western parts of the city, with a smaller cluster in the northwest. One possible explanation is that these areas may have weaker housing markets and lower levels of investment, while population loss may also have contributed to housing surplus and poor building maintenance. In addition, building age and the physical condition of the housing stock may be another important factor behind this spatial pattern. However, this distribution should not be treated as a perfect representation of actual conditions, because it may also partly reflect 311 reporting behavior as well as local enforcement and governance processes.
+
+#### Part 2: Fishnet Grid Creation
+- Create a 500m x 500m fishnet grid
+- Aggregate your violations to grid cells
+- Visualize the count distribution
+
+```{r create-fishnet}
+# Create a 500m x 500m fishnet grid over Chicago
+cell_size <- 1640.42
+
+fishnet <- st_make_grid(
+  chicagoBoundary,
+  cellsize = cell_size,
+  square = TRUE
+) %>%
+  st_sf() %>%
+  mutate(uniqueID = row_number())
+
+# Keep only cells that intersect Chicago
+fishnet <- fishnet[chicagoBoundary, ]
+
+cat("Fishnet created successfully.\n")
+cat("Number of cells:", nrow(fishnet), "\n")
+cat("Cell area (square feet):", round(as.numeric(st_area(fishnet[1, ]))), "\n")
+```
+```{r aggregate-violations}
+# Join vacant building reports to fishnet cells and count reports per cell
+vacant_fishnet <- st_join(vacant_buildings, fishnet, join = st_within) %>%
+  st_drop_geometry() %>%
+  group_by(uniqueID) %>%
+  summarize(countVacant = n())
+
+# Join counts back to the fishnet
+fishnet <- fishnet %>%
+  left_join(vacant_fishnet, by = "uniqueID") %>%
+  mutate(countVacant = replace_na(countVacant, 0))
+
+cat("Violation counts aggregated to fishnet cells.\n")
+summary(fishnet$countVacant)
+cat("Cells with zero reports:", sum(fishnet$countVacant == 0), "\n")
+cat("Percent of zero cells:", round(100 * mean(fishnet$countVacant == 0), 1), "%\n")
+```
+```{r map-fishnet}
+#| fig-width: 8
+#| fig-height: 6
+
+# Visualize aggregated counts
+ggplot() +
+  geom_sf(data = fishnet, aes(fill = countVacant), color = NA) +
+  geom_sf(data = chicagoBoundary, fill = NA, color = "white", linewidth = 0.8) +
+  scale_fill_viridis_c(
+    name = "Count",
+    option = "plasma",
+    trans = "sqrt",
+    breaks = c(0, 1, 5, 10, 20)
+  ) +
+  labs(
+    title = "Vacant and Abandoned Building Reports by Grid Cell",
+    subtitle = "500m x 500m fishnet, Chicago 2017"
+  ) +
+  theme_crime()
+```
+```{r count-distribution}
+# Visualize the count distribution
+ggplot(fishnet, aes(x = countVacant)) +
+  geom_histogram(binwidth = 1, fill = "#440154FF", color = "white") +
+  labs(
+    title = "Distribution of Vacant Building Reports per Grid Cell",
+    subtitle = "Most cells are expected to have few or zero reports",
+    x = "Reports per Cell",
+    y = "Number of Cells"
+  ) +
+  theme_minimal()
+```
+In the second step, I converted the original point data into a 500m by 500m fishnet grid and counted how many vacant and abandoned building reports fell within each cell. The point map was useful for showing the general spatial pattern, but it was still difficult to compare differences across locations in a more systematic way. By using the fishnet, I turned the scattered point pattern into a set of comparable spatial units. After this step, the uneven distribution became much clearer: many cells had very few reports, or none at all, while some cells had much higher counts and were clustered together. This shows that vacant and abandoned building reports are not evenly distributed across Chicago, but are instead concentrated in certain parts of the city.
+
+#### Part 3: Spatial Features
+- Calculate k-nearest neighbor features
+- Perform Local Moran's I analysis
+- Identify hot spots and cold spots
+- Create distance-to-hotspot measures
+- Join any additional contextual data if you are looking for more to do and really get into this (e.g., demographics, land use)
+
+```{r knn-features}
+#| message: false
+# Get coordinates
+fishnet_coords <- st_coordinates(st_centroid(fishnet))
+vacant_coords <- st_coordinates(vacant_buildings)
+
+# Calculate k nearest neighbors and distances
+nn_result <- get.knnx(vacant_coords, fishnet_coords, k = 3)
+
+# Add to fishnet
+fishnet <- fishnet %>%
+  mutate(
+    vacant_buildings.nn = rowMeans(nn_result$nn.dist)
+  )
+
+cat("Calculated nearest neighbor distances successfully.\n")
+summary(fishnet$vacant_buildings.nn)
+```
+```{r local-morans-vacant}
+# Function to calculate Local Moran's I
+calculate_local_morans <- function(data, variable, k = 5) {
+  
+  # Create spatial weights
+  coords <- st_coordinates(st_centroid(data))
+  neighbors <- knn2nb(knearneigh(coords, k = k))
+  weights <- nb2listw(neighbors, style = "W", zero.policy = TRUE)
+  
+  # Calculate Local Moran's I
+  local_moran <- localmoran(data[[variable]], weights)
+  
+  # Classify clusters
+  mean_val <- mean(data[[variable]], na.rm = TRUE)
+  
+  data %>%
+    mutate(
+      local_i = local_moran[, 1],
+      p_value = local_moran[, 5],
+      is_significant = p_value < 0.05,
+      
+      moran_class = case_when(
+        !is_significant ~ "Not Significant",
+        local_i > 0 & .data[[variable]] > mean_val ~ "High-High",
+        local_i > 0 & .data[[variable]] <= mean_val ~ "Low-Low",
+        local_i < 0 & .data[[variable]] > mean_val ~ "High-Low",
+        local_i < 0 & .data[[variable]] <= mean_val ~ "Low-High",
+        TRUE ~ "Not Significant"
+      )
+    )
+}
+
+# Apply Local Moran's I to vacant building report counts
+fishnet <- calculate_local_morans(fishnet, "countVacant", k = 5)
+```
+```{r visualize-morans}
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot() +
+  geom_sf(
+    data = fishnet,
+    aes(fill = moran_class),
+    color = NA
+  ) +
+  scale_fill_manual(
+    values = c(
+      "High-High" = "#d7191c",
+      "High-Low" = "#fdae61",
+      "Low-High" = "#abd9e9",
+      "Low-Low" = "#2c7bb6",
+      "Not Significant" = "gray90"
+    ),
+    name = "Cluster Type"
+  ) +
+  labs(
+    title = "Local Moran's I: Vacant Building Report Clusters",
+    subtitle = "High-High cells indicate clusters of high report counts"
+  ) +
+  theme_crime()
+```
+```{r distance-to-hotspots}
+# Get centroids of High-High cells
+hotspots <- fishnet %>%
+  filter(moran_class == "High-High") %>%
+  st_centroid()
+
+# Calculate distance from each cell to nearest hot spot
+if (nrow(hotspots) > 0) {
+  fishnet <- fishnet %>%
+    mutate(
+      dist_to_hotspot = as.numeric(
+        st_distance(st_centroid(fishnet), hotspots %>% st_union())
+      )
+    )
+  
+  cat("Distance to hot spots calculated successfully.\n")
+  cat("Number of hot spot cells:", nrow(hotspots), "\n")
+} else {
+  fishnet <- fishnet %>%
+    mutate(dist_to_hotspot = 0)
+  
+  cat("No significant hot spots found.\n")
+}
+```
+```{r load contextual data}
+#| echo: false
+#| output: false
+#| message: false
+#| warning: false
+# Load Chicago-area census tracts
+cook_tracts <- tracts(
+  state = "IL",
+  county = "Cook",
+  year = 2017,
+  cb = TRUE
+) %>%
+  st_transform("ESRI:102271")
+
+# Download ACS variables
+acs_raw <- get_acs(
+  geography = "tract",
+  variables = c(
+    median_income = "B19013_001",
+    poverty_total = "B17001_001",
+    poverty_below = "B17001_002"
+  ),
+  state = "IL",
+  county = "Cook",
+  year = 2017,
+  geometry = TRUE
+) %>%
+  st_transform("ESRI:102271")
+```
+```{r clean-contextual-data}
+
+acs_context <- acs_raw %>%
+  st_drop_geometry() %>%
+  dplyr::select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  mutate(
+    poverty_rate = poverty_below / poverty_total
+  )
+
+cook_tracts <- cook_tracts %>%
+  dplyr::select(GEOID) %>%
+  left_join(acs_context, by = "GEOID")
+```
+```{r join-contextual-data}
+fishnet_context <- st_join(
+  st_centroid(fishnet) %>% dplyr::select(uniqueID),
+  cook_tracts,
+  join = st_within,
+  left = TRUE
+) %>%
+  st_drop_geometry() %>%
+  dplyr::select(
+    uniqueID,
+    median_income,
+    poverty_rate
+  )
+
+fishnet <- fishnet %>%
+  left_join(fishnet_context, by = "uniqueID")
+
+summary(fishnet$median_income)
+summary(fishnet$poverty_rate)
+```
+In Part 3, I began to examine spatial features in order to describe the local spatial structure of vacant and abandoned building reports in more detail. I first calculated a k-nearest neighbor measure to show how close each grid cell was to nearby report locations. I then used Local Moran’s I to examine whether high-count or low-count cells were surrounded by similar cells, which helped distinguish broader spatial clustering from more isolated values. Based on that result, I identified hot spots and then calculated the distance from each cell to the nearest hot spot. In this step, I turned what had originally been a simple count map into a set of spatial variables that could be used in later regression models. My main finding was that vacant and abandoned building reports were not only unevenly distributed across the city as a whole, but also formed clear local clusters. I also tried adding contextual data, including median household income and poverty rate, to see whether demographics could improve the model. However, their effect was limited, and the explanatory power of the model still came mainly from the spatial variables rather than from the added demographic measures.
+
+#### Part 4: Count Regression Models
+- Fit Poisson regression
+- Fit Negative Binomial regression
+- Compare model fit (AIC)
+
+```{r prepare-data}
+# Create clean modeling dataset
+fishnet_model <- fishnet %>%
+  st_drop_geometry() %>%
+  dplyr::select(
+    uniqueID,
+    countVacant,
+    vacant_buildings.nn,
+    dist_to_hotspot,
+    median_income,
+    poverty_rate
+  ) %>%
+  na.omit()
+
+cat("Modeling data prepared successfully.\n")
+cat("Observations:", nrow(fishnet_model), "\n")
+cat("Variables:", ncol(fishnet_model), "\n")
+```
+```{r fit-poisson}
+# Fit Poisson regression
+model_poisson <- glm(
+  countVacant ~ vacant_buildings.nn + dist_to_hotspot +
+    median_income + poverty_rate,
+  data = fishnet_model,
+  family = "poisson"
+)
+
+summary(model_poisson)
+```
+```{r check-overdispersion}
+# Calculate dispersion parameter
+dispersion <- sum(residuals(model_poisson, type = "pearson")^2) / 
+  model_poisson$df.residual
+
+cat("Dispersion parameter:", round(dispersion, 2), "\n")
+cat("Rule of thumb: > 1.5 suggests overdispersion\n")
+
+if (dispersion > 1.5) {
+  cat("Overdispersion detected. Consider Negative Binomial model.\n")
+} else {
+  cat("Dispersion looks acceptable for Poisson model.\n")
+}
+```
+```{r fit-negbin}
+# Fit Negative Binomial model
+model_nb <- glm.nb(
+  countVacant ~ vacant_buildings.nn + dist_to_hotspot +
+    median_income + poverty_rate,
+  data = fishnet_model
+)
+
+summary(model_nb)
+
+cat("Poisson AIC:", round(AIC(model_poisson), 1), "\n")
+cat("Negative Binomial AIC:", round(AIC(model_nb), 1), "\n")
+```
+```{r nb_compare}
+model_nb_spatial_only <- glm.nb(
+  countVacant ~ vacant_buildings.nn + dist_to_hotspot,
+  data = fishnet_model
+)
+
+AIC(model_nb_spatial_only)
+AIC(model_nb)
+```
+In Part 4, I moved from spatial description into count regression modeling. The purpose of this step was to test whether the spatial variables I created earlier were actually related to report counts in a formal statistical model, rather than only appearing related on the map. I first fitted a Poisson regression model, but the results showed clear overdispersion. Because of this, I then fitted a Negative Binomial model. In both models, the spatial variables remained the strongest and most stable predictors. I also kept median household income and poverty rate in the model to see whether neighborhood-level demographic conditions could add explanatory power, but compared with the spatial features, their effects were limited. Overall, this step showed that the distribution of vacant and abandoned building reports could be modeled statistically, but the explanatory power of the model still came mainly from spatial structure rather than from the demographic variables. 
+
+#### Part 5: Spatial Cross-Validation (2017)
+- Implement Leave-One-Group-Out cross-validation on 2017 data
+- Calculate and report error metrics (MAE, RMSE)
+
+```{r clean-community-areas}
+# Standardize column names
+names(communityAreas) <- tolower(names(communityAreas))
+
+# Detect likely ID and name fields
+area_id_col <- intersect(
+  names(communityAreas),
+  c("area_num_1", "area_numbe", "area_num", "commarea", "community_area")
+)
+
+name_col <- intersect(
+  names(communityAreas),
+  c("community", "community_name", "area_name")
+)
+
+communityAreas <- communityAreas %>%
+  dplyr::select(
+    CommunityArea = all_of(area_id_col[1]),
+    CommunityName = all_of(name_col[1])
+  )
+
+glimpse(communityAreas)
+```
+```{r join-community-areas}
+# Assign each fishnet cell to a community area using cell centroids
+fishnet_centroids <- st_centroid(fishnet)
+
+fishnet_groups <- st_join(
+  fishnet_centroids %>% dplyr::select(uniqueID),
+  communityAreas,
+  join = st_within,
+  left = TRUE
+) %>%
+  st_drop_geometry()
+
+fishnet <- fishnet %>%
+  left_join(fishnet_groups, by = "uniqueID") %>%
+  filter(!is.na(CommunityArea))
+
+cat("Community areas joined successfully.\n")
+cat("Number of community areas in fishnet:", length(unique(fishnet$CommunityArea)), "\n")
+cat("Number of fishnet cells retained:", nrow(fishnet), "\n")
+```
+```{r prepare-cv-data}
+fishnet_model_cv <- fishnet %>%
+  st_drop_geometry() %>%
+  dplyr::select(
+    uniqueID,
+    CommunityArea,
+    CommunityName,
+    countVacant,
+    vacant_buildings.nn,
+    dist_to_hotspot,
+    median_income,
+    poverty_rate
+  ) %>%
+  na.omit()
+
+cat("Spatial CV data prepared successfully.\n")
+cat("Observations:", nrow(fishnet_model_cv), "\n")
+cat("Community areas:", length(unique(fishnet_model_cv$CommunityArea)), "\n")
+```
+```{r spatial-cv}
+#| echo: false
+#| output: false
+#| message: false
+#| warning: false
+areas <- sort(unique(fishnet_model_cv$CommunityArea))
+cv_results <- tibble()
+
+cat("Running LOGO Spatial Cross-Validation...\n")
+
+for (i in seq_along(areas)) {
+  
+  test_area <- areas[i]
+  
+  train_data <- fishnet_model_cv %>%
+    filter(CommunityArea != test_area)
+  
+  test_data <- fishnet_model_cv %>%
+    filter(CommunityArea == test_area)
+  
+# Fit model on training data
+model_cv <- glm.nb(
+  countVacant ~ vacant_buildings.nn + dist_to_hotspot +
+    median_income + poverty_rate,
+  data = train_data
+)
+  
+# Predict on test data
+  test_data <- test_data %>%
+    mutate(
+      prediction = predict(model_cv, newdata = test_data, type = "response")
+    )
+  
+  # Calculate metrics
+  mae <- mean(abs(test_data$countVacant - test_data$prediction))
+  rmse <- sqrt(mean((test_data$countVacant - test_data$prediction)^2))
+  
+  cv_results <- bind_rows(
+    cv_results,
+    tibble(
+      fold = i,
+      test_area = test_area,
+      community = unique(test_data$CommunityName)[1],
+      n_test = nrow(test_data),
+      mae = mae,
+      rmse = rmse
+    )
+  )
+  
+  cat(
+    "  Fold", i, "/", length(areas),
+    "- Community Area", test_area,
+    "- MAE:", round(mae, 2), "\n"
+  )
+}
+
+cat("\nSpatial Cross-Validation Complete\n")
+cat("Mean MAE:", round(mean(cv_results$mae), 2), "\n")
+cat("Mean RMSE:", round(mean(cv_results$rmse), 2), "\n")
+```
+```{r cv-results-table}
+cv_results %>%
+  arrange(desc(mae)) %>%
+  kable(
+    digits = 2,
+    caption = "LOGO Spatial Cross-Validation Results by Community Area"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+In Part 5, I used spatial cross-validation to test whether the model could still work outside the areas used for training. I used Community Areas as the grouping unit and applied a Leave-One-Group-Out approach. This step was important because nearby spatial units are often similar to each other, so a random split could overestimate model performance. The goal here was to see whether the model could generalize to other parts of the city. The results showed that model performance varied substantially across Community Areas. Some areas had very small prediction errors, while others had much larger ones, especially in several South and West Side communities such as West Englewood, Greater Grand Crossing, Englewood, and Roseland. This suggests that the model’s ability to transfer across space was uneven. In particular, high-cluster areas were often harder to predict precisely, even if the model could still capture the broader pattern of where reports were concentrated. I think one possible reason is that the pattern in these community areas cannot be fully learned from data in the rest of the city, which makes it harder for the model to generalize across communities.
+
+#### Part 6: Model Evaluation
+- Compare to KDE baseline
+
+```{r kde-baseline}
+# Convert vacant building reports to ppp format
+vacant_ppp <- as.ppp(
+  st_coordinates(vacant_buildings),
+  W = as.owin(st_bbox(chicagoBoundary))
+)
+
+# Calculate KDE with 1km bandwidth
+kde_vacant <- density.ppp(
+  vacant_ppp,
+  sigma = 1000,
+  edge = TRUE
+)
+
+# Convert to terra raster
+kde_raster <- rast(kde_vacant)
+
+# Extract KDE values to fishnet cells
+fishnet <- fishnet %>%
+  mutate(
+    kde_value = terra::extract(
+      kde_raster,
+      vect(fishnet),
+      fun = mean,
+      na.rm = TRUE
+    )[, 2]
+  )
+
+cat("KDE baseline calculated successfully.\n")
+summary(fishnet$kde_value)
+```
+```{r visualize-kde}
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot() +
+  geom_sf(data = fishnet, aes(fill = kde_value), color = NA) +
+  geom_sf(data = chicagoBoundary, fill = NA, color = "white", linewidth = 0.8) +
+  scale_fill_viridis_c(
+    name = "KDE Value",
+    option = "plasma"
+  ) +
+  labs(
+    title = "Kernel Density Estimation Baseline",
+    subtitle = "Simple spatial smoothing of vacant building reports"
+  ) +
+  theme_crime()
+```
+
+```{r final-predictions}
+# Fit final Negative Binomial model on all modeling data
+final_model <- glm.nb(
+  countVacant ~ vacant_buildings.nn + dist_to_hotspot +
+    median_income + poverty_rate,
+  data = fishnet_model
+)
+
+# Add model predictions back to fishnet
+fishnet <- fishnet %>%
+  mutate(
+    prediction_nb = predict(final_model, newdata = fishnet_model, type = "response")[match(uniqueID, fishnet_model$uniqueID)]
+  )
+
+# Restrict KDE comparison to the same cells used by the final model
+eval_ids <- fishnet_model$uniqueID
+
+kde_sum <- fishnet %>%
+  st_drop_geometry() %>%
+  filter(uniqueID %in% eval_ids) %>%
+  summarize(total = sum(kde_value, na.rm = TRUE)) %>%
+  pull(total)
+
+count_sum <- fishnet %>%
+  st_drop_geometry() %>%
+  filter(uniqueID %in% eval_ids) %>%
+  summarize(total = sum(countVacant, na.rm = TRUE)) %>%
+  pull(total)
+
+fishnet <- fishnet %>%
+  mutate(
+    prediction_kde = if_else(
+      uniqueID %in% eval_ids,
+      (kde_value / kde_sum) * count_sum,
+      NA_real_
+    )
+  )
+```
+
+```{r compare-models}
+#| fig-width: 12
+#| fig-height: 4
+
+p1 <- ggplot() +
+  geom_sf(data = fishnet, aes(fill = countVacant), color = NA) +
+  scale_fill_viridis_c(name = "Count", option = "plasma") +
+  labs(title = "Actual Vacant Building Reports") +
+  theme_crime()
+
+p2 <- ggplot() +
+  geom_sf(data = fishnet, aes(fill = prediction_nb), color = NA) +
+  scale_fill_viridis_c(name = "Predicted", option = "plasma") +
+  labs(title = "Model Predictions (NB)") +
+  theme_crime()
+
+p3 <- ggplot() +
+  geom_sf(data = fishnet, aes(fill = prediction_kde), color = NA) +
+  scale_fill_viridis_c(name = "Predicted", option = "plasma") +
+  labs(title = "KDE Baseline Predictions") +
+  theme_crime()
+
+p1 + p2 + p3 +
+  plot_annotation(
+    title = "Actual vs. Predicted Vacant Building Reports",
+    subtitle = "Does the regression model outperform the KDE baseline?"
+  )
+```
+```{r model-comparison-metrics}
+comparison <- fishnet %>%
+  st_drop_geometry() %>%
+  filter(!is.na(prediction_nb), !is.na(prediction_kde)) %>%
+  summarize(
+    model_mae = mean(abs(countVacant - prediction_nb)),
+    model_rmse = sqrt(mean((countVacant - prediction_nb)^2)),
+    kde_mae = mean(abs(countVacant - prediction_kde)),
+    kde_rmse = sqrt(mean((countVacant - prediction_kde)^2))
+  )
+
+comparison %>%
+  pivot_longer(everything(), names_to = "metric", values_to = "value") %>%
+  separate(metric, into = c("approach", "metric"), sep = "_") %>%
+  pivot_wider(names_from = metric, values_from = value) %>%
+  kable(
+    digits = 2,
+    caption = "Model Performance Comparison"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+In Part 6, I compared the final regression model with a simple KDE baseline to see whether the more complex model actually improved prediction. Both maps captured the main concentration of vacant and abandoned building reports, especially in the South and West parts of Chicago. However, the KDE baseline was closer to the actual pattern, and its MAE and RMSE were both lower than those of the regression model. This suggests that for a highly clustered pattern like vacant and abandoned building reports, simple spatial smoothing performed better than the count regression model. This is likely because vacant and abandoned building reports are already strongly spatially clustered, so the KDE baseline can capture that pattern directly through spatial smoothing, while the regression model uses only a limited set of variables and cannot fully capture all of the local variation.
+
+---
