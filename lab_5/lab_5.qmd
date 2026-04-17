@@ -686,6 +686,7 @@ model5 <- lm(
 cat("Model 5 R-squared:", summary(model5)$r.squared, "\n")
 cat("Model 5 Adj R-squared:", summary(model5)$adj.r.squared, "\n")
 ```
+
 ```{r calculate_mae}
 #| include: false
 # Get predictions on test set
@@ -730,7 +731,6 @@ kable(mae_results,
       col.names = c("Model", "MAE (trips)")) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
-
 
 ```{r compare_models}
 #| include: false
@@ -1004,6 +1004,7 @@ p3 <- ggplot(station_errors_demo, aes(x = Percent_White, y = MAE)) +
 ## Part 1: Replicate with Different Quarter (alternately, you could do a longer time-span by merging multiple quarters together. I'm not picky about that)
 
 1.  **Download data** for Q2, Q3, or Q4 2024 from: https://www.rideindego.com/about/data/
+
 ```{r load_indego_q2}
 indego_q2 <- read_csv(here("data/indego-trips-2025-q2.csv"))
 glimpse(indego_q2)
@@ -1025,6 +1026,7 @@ table(indego_q2$trip_route_category)
 table(indego_q2$passholder_type)
 table(indego_q2$bike_type)
 ```
+
 ```{r create-time-bins_q2}
 indego_q2 <- indego_q2 %>%
   mutate(
@@ -1042,8 +1044,9 @@ indego_q2 <- indego_q2 %>%
 
 head(indego_q2 %>% select(start_datetime, interval60, week, dotw, hour, weekend))
 ```
-#EDA OF INDEGO DATA
-## Trips Over Time
+
+#EDA OF INDEGO DATA \## Trips Over Time
+
 ```{r EDA_trips_over_time_q2}
 # Daily trip counts
 daily_q2_trips <- indego_q2 %>%
@@ -1062,7 +1065,9 @@ ggplot(daily_q2_trips, aes(x = date, y = trips)) +
   ) +
   plotTheme
 ```
+
 ## Hourly Patterns
+
 ```{r EDA_hourly_patterns_q2}
 # Average trips by hour and day type
 hourly_q2_patterns <- indego_q2 %>%
@@ -1082,7 +1087,9 @@ ggplot(hourly_q2_patterns, aes(x = hour, y = avg_trips, color = day_type)) +
   ) +
   plotTheme
 ```
+
 ## Top Stations
+
 ```{r top_stations_q2}
 # Most popular origin stations
 top_q2_stations <- indego_q2 %>%
@@ -1097,7 +1104,9 @@ kable(
 ) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
+
 # PUT DATA IN CONTEXT
+
 ## Load Philadelphia Census Data
 
 ```{r load_census_q2}
@@ -1134,6 +1143,7 @@ philly_census_q2 <- get_acs(
 
 glimpse(philly_census_q2)
 ```
+
 ## Map Philadelphia Context
 
 ```{r map_philly_q2}
@@ -1155,6 +1165,7 @@ ggplot() +
   ) +
   mapTheme
 ```
+
 ## Join Census Data to Stations
 
 ```{r join_census_to_stations_q2}
@@ -1213,7 +1224,9 @@ ggplot() +
   ) +
   mapTheme
 ```
+
 ## Dealing with missing data
+
 ```{r missing data_q2}
 #| include: false
 # Identify which stations to keep
@@ -1233,6 +1246,7 @@ indego_q2_census <- indego_q2 %>%
 ```
 
 ## Get Weather Data
+
 ```{r get_weather_q2}
 #| include: false
 weather_data_q2 <- riem_measures(
@@ -1257,6 +1271,7 @@ weather_complete_q2 <- weather_processed_q2 %>%
 
 summary(weather_complete_q2 %>% select(Temperature, Precipitation, Wind_Speed))
 ```
+
 ## Visualize Weather Patterns
 
 ```{r visualize-weather_q2}
@@ -1271,8 +1286,11 @@ ggplot(weather_complete_q2, aes(x = interval60, y = Temperature)) +
   ) +
   plotTheme
 ```
+
 # CREATE SPACE-TIME PANEL
+
 ## Aggregate Trips to Station-Hour Level
+
 ```{r aggregate-trips_q2}
 #| message: false
 #| warning: false
@@ -1292,7 +1310,9 @@ length(unique(trips_q2_panel$interval60))
 
 hist(trips_q2_panel$Trip_Count)
 ```
+
 ## Create Complete Panel Structure
+
 ```{r complete-panel_q2}
 #| echo: false
 n_stations_q2 <- length(unique(trips_q2_panel$start_station))
@@ -1337,6 +1357,7 @@ glimpse(study_q2_panel)
 
 cat("Complete panel rows:", format(nrow(study_q2_panel), big.mark = ","), "\n")
 ```
+
 ## Add Time Features
 
 ```{r add_time_features_q2}
@@ -1354,6 +1375,7 @@ study_q2_panel <- study_q2_panel %>%
 
 glimpse(study_q2_panel)
 ```
+
 ## Join Weather Data
 
 ```{r join_weather_q2}
@@ -1365,7 +1387,9 @@ glimpse(study_q2_panel)
 
 summary(study_q2_panel %>% select(Trip_Count, Temperature, Precipitation))
 ```
+
 # CREATE TEMPORAL LAG VARIABLES
+
 ```{r create_lags_q2}
 #| include: false
 study_q2_panel <- study_q2_panel %>%
@@ -1388,6 +1412,7 @@ study_q2_panel_complete <- study_q2_panel %>%
 cat("Rows after removing NA lags:",
     format(nrow(study_q2_panel_complete), big.mark = ","), "\n")
 ```
+
 ## Visualize Lag Correlations
 
 ```{r lag_correlations_q2}
@@ -1451,6 +1476,7 @@ cat("Testing date range:", min(test_q2$date), "to", max(test_q2$date), "\n")
 #BUILD PREDICTIVE MODELS
 
 ## Model 1: Baseline (Time + Weather)
+
 ```{r model1_q2}
 #| include: false
 # Create day-of-week factor with treatment coding
@@ -1472,6 +1498,7 @@ model1_q2 <- lm(
 
 summary(model1_q2)
 ```
+
 ## Model 2: Add Temporal Lags
 
 ```{r model2_q2}
@@ -1484,6 +1511,7 @@ model2_q2 <- lm(
 
 summary(model2_q2)
 ```
+
 ## Model 3: Add Demographics
 
 ```{r model3_q2}
@@ -1497,6 +1525,7 @@ model3_q2 <- lm(
 
 summary(model3_q2)
 ```
+
 ## Model 4: Add Station Fixed Effects
 
 ```{r model4_q2}
@@ -1513,6 +1542,7 @@ model4_q2 <- lm(
 cat("Model 4 R-squared:", summary(model4_q2)$r.squared, "\n")
 cat("Model 4 Adj R-squared:", summary(model4_q2)$adj.r.squared, "\n")
 ```
+
 ## Model 5: Add Rush Hour Interaction
 
 ```{r model5_q2}
@@ -1530,6 +1560,7 @@ model5_q2 <- lm(
 cat("Model 5 R-squared:", summary(model5_q2)$r.squared, "\n")
 cat("Model 5 Adj R-squared:", summary(model5_q2)$adj.r.squared, "\n")
 ```
+
 # MODEL EVALUATION
 
 ## Calculate Predictions and MAE
@@ -1581,6 +1612,7 @@ kable(
 ) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
+
 ## Visualize Model Comparison
 
 ```{r compare_models_q2}
@@ -1598,9 +1630,8 @@ ggplot(mae_q2_results, aes(x = reorder(Model, -MAE), y = MAE)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-3.  **Compare results** to Q1 2025:
-# Visualize Compare results
-## MAE comparison
+3.  **Compare results** to Q1 2025: \# Visualize Compare results \## MAE comparison
+
 ```{r compare_mae_q1_q2}
 #| echo: false
 # Combine MAE results from Q1 and Q2
@@ -1631,7 +1662,9 @@ ggplot(mae_compare, aes(x = Model, y = MAE, fill = Quarter)) +
   plotTheme +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ## Daily trips comparison
+
 ```{r compare_daily_trip_q1_q2}
 #| echo: false
 daily_q1_compare <- daily_trips %>%
@@ -1666,7 +1699,9 @@ ggplot(daily_compare, aes(x = day_in_quarter, y = trips, color = Quarter)) +
   ) +
   plotTheme
 ```
+
 ## Hourly pattern comparison
+
 ```{r compare_hourly_pattern_q1_q2}
 #| echo: false
 hourly_q1_compare <- hourly_patterns %>%
@@ -1693,10 +1728,13 @@ ggplot(hourly_compare, aes(x = hour, y = avg_trips, color = Quarter)) +
   ) +
   plotTheme
 ```
-    -   How do MAE values compare? Why might they differ?
-    -   Are temporal patterns different (e.g., summer vs. winter)?
-    -   Which features are most important in your quarter?
-    
+
+```         
+-   How do MAE values compare? Why might they differ?
+-   Are temporal patterns different (e.g., summer vs. winter)?
+-   Which features are most important in your quarter?
+```
+
 MAE values are consistently higher in Q2 2025 than in Q1 2025. One likely reason is that overall bike-share demand is higher in Q2, so prediction errors measured in absolute trip counts also become larger. In addition, Q2 covers April to June, when warmer and more variable weather may lead to more complex travel behavior. Compared with the colder and more commute-driven patterns in Q1, Q2 likely includes more discretionary and weather-sensitive trips, which makes demand harder to predict and increases model error.
 
 Q1 and Q2 show similar hourly structures: weekday demand peaks during the morning and evening commute periods, while weekend demand stays elevated from mid-day to early evening. However, the daily ridership comparison suggests a clearer difference across quarters. In Q1, daily trips generally increase over time, while Q2 shows a more fluctuating pattern, with alternating periods of increase and decline. A likely explanation is seasonal weather variation. Bike-share demand may be lower when temperatures are either too cold or too hot, and Q2 appears to be more sensitive to these changes. In particular, the drop in temperature during May may be associated with the first decline in trips, while the sustained temperature increase in June may help explain the second decline.
@@ -1724,7 +1762,7 @@ Analyze your model's errors in detail:
     -   Relate errors to census characteristics
     -   Are certain communities systematically harder to predict?
     -   What are the equity implications?
-    
+
 # SPACE-TIME ERROR ANALYSIS
 
 ## Observed vs. Predicted
@@ -1761,6 +1799,7 @@ ggplot(test_q2, aes(x = Trip_Count, y = pred2_q2)) +
   ) +
   plotTheme
 ```
+
 ## Spatial Error Patterns
 
 ```{r spatial_errors_q2}
@@ -1836,6 +1875,7 @@ p2 <- ggplot() +
 
 (p1 | p2)
 ```
+
 ## Temporal Error Patterns
 
 ```{r temporal_errors_q2}
@@ -1866,7 +1906,9 @@ ggplot(temporal_q2_errors, aes(x = time_of_day_q2, y = MAE, fill = day_type)) +
   plotTheme +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ## Errors and Demographics
+
 ```{r errors_demographics_q2}
 #| message: false
 #| warning: false
@@ -1916,6 +1958,7 @@ p3 <- ggplot(station_q2_errors_demo, aes(x = Percent_White, y = MAE)) +
 
 (p1 | p2) / (p3 | plot_spacer())
 ```
+
 Spatial patterns errors are concentrated in the central part of Philadelphia, where demand is also highest. This suggests that the model struggles most at the busiest stations. A likely reason is that these central stations have more complex demand patterns, including commuting, which are not fully captured by the current model.
 
 Temporal patterns errors are highest during PM Rush, and they are also relatively high during AM Rush and Mid-Day, while overnight errors are lowest. This means the model performs worst when demand is high and changes quickly. The observed-versus-predicted plots also suggest some under-prediction at peak demand levels. Q2 likely has stronger seasonal and weather-related variation, which may further increase daytime prediction error.
@@ -2099,12 +2142,12 @@ kable(
   kable_styling(bootstrap_options = c("striped", "hover"))
 
 ```
+
 In this part, I added three new features to Model 2: same_hour_last_week_q2, dist_center_city_q2, and perfect_weather_q2. After adding these variables, the test-set MAE decreased from 0.690 to 0.673, which indicates a small improvement in predictive accuracy.
 
 I chose same_hour_last_week_q2 because the model showed larger errors during peak periods, and demand at the same hour in the previous week may help capture recurring temporal patterns. I added dist_center_city_q2 because the spatial error maps suggested that both higher errors and higher demand were concentrated in the central city, so distance to Center City may help explain this spatial variation. I also added perfect_weather_q2 because ridership in Q2 appeared to be more sensitive to seasonal and weather conditions, with demand patterns moving together with changes in temperature.
 
 These features improved model performance, but only slightly. Among them, same_hour_last_week_q2 and dist_center_city_q2 were more useful, while perfect_weather_q2 had a weaker effect. This suggests that the model is still missing other important factors, such as holidays and other contextual influences that affect ridership. In addition, the Poisson model did not improve performance and actually performed worse than Model 6.
-
 
 ## Part 4: Critical Reflection
 
