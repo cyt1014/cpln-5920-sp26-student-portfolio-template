@@ -1,5 +1,5 @@
 ---
-title: "Bikeshare_SpaceTime_Prediction"
+title: "Lab 5: Bikeshare SpaceTime Prediction"
 subtitle: "CPLN 5080 - Spring 2026"
 author: "Johnny"
 date: today
