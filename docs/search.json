@@ -2,224 +2,224 @@
   {
     "objectID": "lab_5/lab_5.html",
     "href": "lab_5/lab_5.html",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "",
     "text": "Philadelphia’s Indego bike share system faces the same operational challenge as every bike share system: rebalancing bikes to meet anticipated demand.\nImagine you’re an Indego operations manager at 6:00 AM on a Monday morning. You have: - 200 stations across Philadelphia - Limited trucks and staff for moving bikes - 2-3 hours before morning rush hour demand peaks - The question: Which stations will run out of bikes by 8:30 AM?\nThis lab will teach you to build predictive models that forecast bike share demand across space (different stations) and time (different hours) to help solve this operational problem.\n\n\n\n\nDownload data for Q2, Q3, or Q4 2024 from: https://www.rideindego.com/about/data/\n\n\n\nCode\nindego_q2 &lt;- read_csv(here(\"data/indego-trips-2025-q2.csv\"))\nglimpse(indego_q2)\n\n\nRows: 365,760\nColumns: 15\n$ trip_id             &lt;dbl&gt; 1164246461, 1164246634, 1164246553, 1164246521, 11…\n$ duration            &lt;dbl&gt; 11, 31, 9, 3, 11, 7, 13, 12, 3, 58, 21, 5, 15, 10,…\n$ start_time          &lt;chr&gt; \"4/1/2025 0:04\", \"4/1/2025 0:04\", \"4/1/2025 0:17\",…\n$ end_time            &lt;chr&gt; \"4/1/2025 0:15\", \"4/1/2025 0:35\", \"4/1/2025 0:26\",…\n$ start_station       &lt;dbl&gt; 3022, 3040, 3396, 3054, 3280, 3301, 3158, 3374, 33…\n$ start_lat           &lt;dbl&gt; 39.95472, 39.96289, 39.92327, 39.96250, 39.93968, …\n$ start_lon           &lt;dbl&gt; -75.18323, -75.16606, -75.18210, -75.17420, -75.21…\n$ end_station         &lt;dbl&gt; 3064, 3100, 3349, 3235, 3349, 3051, 3028, 3154, 33…\n$ end_lat             &lt;dbl&gt; 39.93840, 39.92777, 39.93651, 39.96000, 39.93651, …\n$ end_lon             &lt;dbl&gt; -75.17327, -75.15103, -75.18621, -75.16510, -75.18…\n$ bike_id             &lt;chr&gt; \"31751\", \"14481\", \"02724\", \"24841\", \"25744\", \"3123…\n$ plan_duration       &lt;dbl&gt; 30, 30, 30, 365, 30, 365, 1, 30, 30, 30, 30, 30, 1…\n$ trip_route_category &lt;chr&gt; \"One Way\", \"One Way\", \"One Way\", \"One Way\", \"One W…\n$ passholder_type     &lt;chr&gt; \"Indego30\", \"Indego30\", \"Indego30\", \"Indego365\", \"…\n$ bike_type           &lt;chr&gt; \"electric\", \"standard\", \"standard\", \"electric\", \"e…\n\n\n\nAdapt this code to work with your quarter:\n\n\n\nCode\nindego_q2 &lt;- indego_q2 %&gt;%\n  mutate(\n    start_datetime = mdy_hm(start_time),\n    end_datetime = mdy_hm(end_time),\n    interval60 = floor_date(start_datetime, unit = \"hour\"),\n    week = week(interval60),\n    month = month(interval60, label = TRUE),\n    dotw = wday(interval60, label = TRUE, abbr = TRUE, locale = \"C\"),\n    hour = hour(interval60),\n    date = as.Date(interval60),\n    weekend = ifelse(dotw %in% c(\"Sat\", \"Sun\"), 1, 0),\n    rush_hour = ifelse(hour %in% c(7, 8, 9, 16, 17, 18), 1, 0)\n  )\n\nhead(indego_q2 %&gt;% select(start_datetime, interval60, week, dotw, hour, weekend))\n\n\n# A tibble: 6 × 6\n  start_datetime      interval60           week dotw   hour weekend\n  &lt;dttm&gt;              &lt;dttm&gt;              &lt;dbl&gt; &lt;ord&gt; &lt;int&gt;   &lt;dbl&gt;\n1 2025-04-01 00:04:00 2025-04-01 00:00:00    13 Tue       0       0\n2 2025-04-01 00:04:00 2025-04-01 00:00:00    13 Tue       0       0\n3 2025-04-01 00:17:00 2025-04-01 00:00:00    13 Tue       0       0\n4 2025-04-01 00:20:00 2025-04-01 00:00:00    13 Tue       0       0\n5 2025-04-01 00:25:00 2025-04-01 00:00:00    13 Tue       0       0\n6 2025-04-01 00:40:00 2025-04-01 00:00:00    13 Tue       0       0\n\n\n#EDA OF INDEGO DATA ## Trips Over Time\n\n\nCode\n# Daily trip counts\ndaily_q2_trips &lt;- indego_q2 %&gt;%\n  group_by(date) %&gt;%\n  summarize(trips = n())\n\nggplot(daily_q2_trips, aes(x = date, y = trips)) +\n  geom_line(color = \"#3182bd\", linewidth = 1) +\n  geom_smooth(se = FALSE, color = \"red\", linetype = \"dashed\") +\n  labs(\n    title = \"Indego Daily Ridership - Q2 2025\",\n    subtitle = \"Spring demand patterns in Philadelphia\",\n    x = \"Date\",\n    y = \"Daily Trips\",\n    caption = \"Source: Indego bike share\"\n  ) +\n  plotTheme\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCode\n# Average trips by hour and day type\nhourly_q2_patterns &lt;- indego_q2 %&gt;%\n  group_by(hour, weekend) %&gt;%\n  summarize(avg_trips = n() / n_distinct(date)) %&gt;%\n  mutate(day_type = ifelse(weekend == 1, \"Weekend\", \"Weekday\"))\n\nggplot(hourly_q2_patterns, aes(x = hour, y = avg_trips, color = day_type)) +\n  geom_line(linewidth = 1.2) +\n  scale_color_manual(values = c(\"Weekday\" = \"#08519c\", \"Weekend\" = \"#6baed6\")) +\n  labs(\n    title = \"Average Hourly Ridership Patterns\",\n    subtitle = \"Clear commute patterns on weekdays\",\n    x = \"Hour of Day\",\n    y = \"Average Trips per Hour\",\n    color = \"Day Type\"\n  ) +\n  plotTheme\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCode\n# Most popular origin stations\ntop_q2_stations &lt;- indego_q2 %&gt;%\n  count(start_station, start_lat, start_lon, name = \"trips\") %&gt;%\n  arrange(desc(trips)) %&gt;%\n  head(20)\n\nkable(\n  top_q2_stations,\n  caption = \"Top 20 Indego Stations by Trip Origins\",\n  format.args = list(big.mark = \",\")\n) %&gt;%\n  kable_styling(bootstrap_options = c(\"striped\", \"hover\"))\n\n\n\nTop 20 Indego Stations by Trip Origins\n\n\nstart_station\nstart_lat\nstart_lon\ntrips\n\n\n\n\n3,010\n39.94711\n-75.16618\n6,278\n\n\n3,032\n39.94527\n-75.17971\n4,751\n\n\n3,359\n39.94888\n-75.16978\n4,181\n\n\n3,028\n39.94061\n-75.14958\n4,028\n\n\n3,163\n39.94974\n-75.18097\n4,000\n\n\n3,020\n39.94855\n-75.19007\n3,946\n\n\n3,185\n39.95169\n-75.15888\n3,914\n\n\n3,066\n39.94561\n-75.17348\n3,899\n\n\n3,022\n39.95472\n-75.18323\n3,856\n\n\n3,054\n39.96250\n-75.17420\n3,767\n\n\n3,161\n39.95486\n-75.18091\n3,629\n\n\n3,362\n39.94816\n-75.16226\n3,552\n\n\n3,063\n39.94633\n-75.16980\n3,516\n\n\n3,213\n39.93887\n-75.16663\n3,332\n\n\n3,059\n39.96244\n-75.16121\n3,320\n\n\n3,012\n39.94218\n-75.17747\n3,264\n\n\n3,007\n39.94517\n-75.15993\n3,242\n\n\n3,061\n39.95425\n-75.17761\n3,193\n\n\n3,101\n39.94295\n-75.15955\n3,170\n\n\n3,296\n39.95134\n-75.16758\n3,088"
   },
   {
     "objectID": "lab_5/lab_5.html#the-rebalancing-challenge-in-philadelphia",
     "href": "lab_5/lab_5.html#the-rebalancing-challenge-in-philadelphia",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "",
     "text": "Philadelphia’s Indego bike share system faces the same operational challenge as every bike share system: rebalancing bikes to meet anticipated demand.\nImagine you’re an Indego operations manager at 6:00 AM on a Monday morning. You have: - 200 stations across Philadelphia - Limited trucks and staff for moving bikes - 2-3 hours before morning rush hour demand peaks - The question: Which stations will run out of bikes by 8:30 AM?\nThis lab will teach you to build predictive models that forecast bike share demand across space (different stations) and time (different hours) to help solve this operational problem."
   },
   {
     "objectID": "lab_5/lab_5.html#part-1-replicate-with-different-quarter-alternately-you-could-do-a-longer-time-span-by-merging-multiple-quarters-together.-im-not-picky-about-that",
     "href": "lab_5/lab_5.html#part-1-replicate-with-different-quarter-alternately-you-could-do-a-longer-time-span-by-merging-multiple-quarters-together.-im-not-picky-about-that",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "",
     "text": "Download data for Q2, Q3, or Q4 2024 from: https://www.rideindego.com/about/data/\n\n\n\nCode\nindego_q2 &lt;- read_csv(here(\"data/indego-trips-2025-q2.csv\"))\nglimpse(indego_q2)\n\n\nRows: 365,760\nColumns: 15\n$ trip_id             &lt;dbl&gt; 1164246461, 1164246634, 1164246553, 1164246521, 11…\n$ duration            &lt;dbl&gt; 11, 31, 9, 3, 11, 7, 13, 12, 3, 58, 21, 5, 15, 10,…\n$ start_time          &lt;chr&gt; \"4/1/2025 0:04\", \"4/1/2025 0:04\", \"4/1/2025 0:17\",…\n$ end_time            &lt;chr&gt; \"4/1/2025 0:15\", \"4/1/2025 0:35\", \"4/1/2025 0:26\",…\n$ start_station       &lt;dbl&gt; 3022, 3040, 3396, 3054, 3280, 3301, 3158, 3374, 33…\n$ start_lat           &lt;dbl&gt; 39.95472, 39.96289, 39.92327, 39.96250, 39.93968, …\n$ start_lon           &lt;dbl&gt; -75.18323, -75.16606, -75.18210, -75.17420, -75.21…\n$ end_station         &lt;dbl&gt; 3064, 3100, 3349, 3235, 3349, 3051, 3028, 3154, 33…\n$ end_lat             &lt;dbl&gt; 39.93840, 39.92777, 39.93651, 39.96000, 39.93651, …\n$ end_lon             &lt;dbl&gt; -75.17327, -75.15103, -75.18621, -75.16510, -75.18…\n$ bike_id             &lt;chr&gt; \"31751\", \"14481\", \"02724\", \"24841\", \"25744\", \"3123…\n$ plan_duration       &lt;dbl&gt; 30, 30, 30, 365, 30, 365, 1, 30, 30, 30, 30, 30, 1…\n$ trip_route_category &lt;chr&gt; \"One Way\", \"One Way\", \"One Way\", \"One Way\", \"One W…\n$ passholder_type     &lt;chr&gt; \"Indego30\", \"Indego30\", \"Indego30\", \"Indego365\", \"…\n$ bike_type           &lt;chr&gt; \"electric\", \"standard\", \"standard\", \"electric\", \"e…\n\n\n\nAdapt this code to work with your quarter:\n\n\n\nCode\nindego_q2 &lt;- indego_q2 %&gt;%\n  mutate(\n    start_datetime = mdy_hm(start_time),\n    end_datetime = mdy_hm(end_time),\n    interval60 = floor_date(start_datetime, unit = \"hour\"),\n    week = week(interval60),\n    month = month(interval60, label = TRUE),\n    dotw = wday(interval60, label = TRUE, abbr = TRUE, locale = \"C\"),\n    hour = hour(interval60),\n    date = as.Date(interval60),\n    weekend = ifelse(dotw %in% c(\"Sat\", \"Sun\"), 1, 0),\n    rush_hour = ifelse(hour %in% c(7, 8, 9, 16, 17, 18), 1, 0)\n  )\n\nhead(indego_q2 %&gt;% select(start_datetime, interval60, week, dotw, hour, weekend))\n\n\n# A tibble: 6 × 6\n  start_datetime      interval60           week dotw   hour weekend\n  &lt;dttm&gt;              &lt;dttm&gt;              &lt;dbl&gt; &lt;ord&gt; &lt;int&gt;   &lt;dbl&gt;\n1 2025-04-01 00:04:00 2025-04-01 00:00:00    13 Tue       0       0\n2 2025-04-01 00:04:00 2025-04-01 00:00:00    13 Tue       0       0\n3 2025-04-01 00:17:00 2025-04-01 00:00:00    13 Tue       0       0\n4 2025-04-01 00:20:00 2025-04-01 00:00:00    13 Tue       0       0\n5 2025-04-01 00:25:00 2025-04-01 00:00:00    13 Tue       0       0\n6 2025-04-01 00:40:00 2025-04-01 00:00:00    13 Tue       0       0\n\n\n#EDA OF INDEGO DATA ## Trips Over Time\n\n\nCode\n# Daily trip counts\ndaily_q2_trips &lt;- indego_q2 %&gt;%\n  group_by(date) %&gt;%\n  summarize(trips = n())\n\nggplot(daily_q2_trips, aes(x = date, y = trips)) +\n  geom_line(color = \"#3182bd\", linewidth = 1) +\n  geom_smooth(se = FALSE, color = \"red\", linetype = \"dashed\") +\n  labs(\n    title = \"Indego Daily Ridership - Q2 2025\",\n    subtitle = \"Spring demand patterns in Philadelphia\",\n    x = \"Date\",\n    y = \"Daily Trips\",\n    caption = \"Source: Indego bike share\"\n  ) +\n  plotTheme"
   },
   {
     "objectID": "lab_5/lab_5.html#hourly-patterns",
     "href": "lab_5/lab_5.html#hourly-patterns",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "",
     "text": "Code\n# Average trips by hour and day type\nhourly_q2_patterns &lt;- indego_q2 %&gt;%\n  group_by(hour, weekend) %&gt;%\n  summarize(avg_trips = n() / n_distinct(date)) %&gt;%\n  mutate(day_type = ifelse(weekend == 1, \"Weekend\", \"Weekday\"))\n\nggplot(hourly_q2_patterns, aes(x = hour, y = avg_trips, color = day_type)) +\n  geom_line(linewidth = 1.2) +\n  scale_color_manual(values = c(\"Weekday\" = \"#08519c\", \"Weekend\" = \"#6baed6\")) +\n  labs(\n    title = \"Average Hourly Ridership Patterns\",\n    subtitle = \"Clear commute patterns on weekdays\",\n    x = \"Hour of Day\",\n    y = \"Average Trips per Hour\",\n    color = \"Day Type\"\n  ) +\n  plotTheme"
   },
   {
     "objectID": "lab_5/lab_5.html#top-stations",
     "href": "lab_5/lab_5.html#top-stations",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "",
     "text": "Code\n# Most popular origin stations\ntop_q2_stations &lt;- indego_q2 %&gt;%\n  count(start_station, start_lat, start_lon, name = \"trips\") %&gt;%\n  arrange(desc(trips)) %&gt;%\n  head(20)\n\nkable(\n  top_q2_stations,\n  caption = \"Top 20 Indego Stations by Trip Origins\",\n  format.args = list(big.mark = \",\")\n) %&gt;%\n  kable_styling(bootstrap_options = c(\"striped\", \"hover\"))\n\n\n\nTop 20 Indego Stations by Trip Origins\n\n\nstart_station\nstart_lat\nstart_lon\ntrips\n\n\n\n\n3,010\n39.94711\n-75.16618\n6,278\n\n\n3,032\n39.94527\n-75.17971\n4,751\n\n\n3,359\n39.94888\n-75.16978\n4,181\n\n\n3,028\n39.94061\n-75.14958\n4,028\n\n\n3,163\n39.94974\n-75.18097\n4,000\n\n\n3,020\n39.94855\n-75.19007\n3,946\n\n\n3,185\n39.95169\n-75.15888\n3,914\n\n\n3,066\n39.94561\n-75.17348\n3,899\n\n\n3,022\n39.95472\n-75.18323\n3,856\n\n\n3,054\n39.96250\n-75.17420\n3,767\n\n\n3,161\n39.95486\n-75.18091\n3,629\n\n\n3,362\n39.94816\n-75.16226\n3,552\n\n\n3,063\n39.94633\n-75.16980\n3,516\n\n\n3,213\n39.93887\n-75.16663\n3,332\n\n\n3,059\n39.96244\n-75.16121\n3,320\n\n\n3,012\n39.94218\n-75.17747\n3,264\n\n\n3,007\n39.94517\n-75.15993\n3,242\n\n\n3,061\n39.95425\n-75.17761\n3,193\n\n\n3,101\n39.94295\n-75.15955\n3,170\n\n\n3,296\n39.95134\n-75.16758\n3,088"
   },
   {
     "objectID": "lab_5/lab_5.html#load-philadelphia-census-data",
     "href": "lab_5/lab_5.html#load-philadelphia-census-data",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Load Philadelphia Census Data",
     "text": "Load Philadelphia Census Data"
   },
   {
     "objectID": "lab_5/lab_5.html#map-philadelphia-context",
     "href": "lab_5/lab_5.html#map-philadelphia-context",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Map Philadelphia Context",
     "text": "Map Philadelphia Context\n\n\nCode\nggplot() +\n  geom_sf(data = philly_census_q2, aes(fill = Med_Inc), color = NA) +\n  scale_fill_viridis(\n    option = \"viridis\",\n    name = \"Median\\nIncome\",\n    labels = scales::dollar\n  ) +\n  labs(\n    title = \"Philadelphia Median Household Income by Census Tract\",\n    subtitle = \"Context for understanding bike share demand patterns\"\n  ) +\n  geom_point(\n    data = indego_q2,\n    aes(x = start_lon, y = start_lat),\n    color = \"red\", size = 0.25, alpha = 0.6\n  ) +\n  mapTheme"
   },
   {
     "objectID": "lab_5/lab_5.html#join-census-data-to-stations",
     "href": "lab_5/lab_5.html#join-census-data-to-stations",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Join Census Data to Stations",
     "text": "Join Census Data to Stations"
   },
   {
     "objectID": "lab_5/lab_5.html#dealing-with-missing-data",
     "href": "lab_5/lab_5.html#dealing-with-missing-data",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Dealing with missing data",
     "text": "Dealing with missing data"
   },
   {
     "objectID": "lab_5/lab_5.html#get-weather-data",
     "href": "lab_5/lab_5.html#get-weather-data",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Get Weather Data",
     "text": "Get Weather Data"
   },
   {
     "objectID": "lab_5/lab_5.html#visualize-weather-patterns",
     "href": "lab_5/lab_5.html#visualize-weather-patterns",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Visualize Weather Patterns",
     "text": "Visualize Weather Patterns\n\n\nCode\nggplot(weather_complete_q2, aes(x = interval60, y = Temperature)) +\n  geom_line(color = \"#3182bd\", alpha = 0.7) +\n  geom_smooth(se = FALSE, color = \"red\") +\n  labs(\n    title = \"Philadelphia Temperature - Q2 2025\",\n    subtitle = \"Spring to early summer transition\",\n    x = \"Date\",\n    y = \"Temperature (°F)\"\n  ) +\n  plotTheme"
   },
   {
     "objectID": "lab_5/lab_5.html#aggregate-trips-to-station-hour-level",
     "href": "lab_5/lab_5.html#aggregate-trips-to-station-hour-level",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Aggregate Trips to Station-Hour Level",
     "text": "Aggregate Trips to Station-Hour Level\n\n\n[1] 179107\n\n\n[1] 252\n\n\n[1] 2177"
   },
   {
     "objectID": "lab_5/lab_5.html#create-complete-panel-structure",
     "href": "lab_5/lab_5.html#create-complete-panel-structure",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Create Complete Panel Structure",
     "text": "Create Complete Panel Structure\n\n\nExpected panel rows: 548,604 \n\n\nCurrent rows: 179,107 \n\n\nMissing rows: 369,497 \n\n\nRows: 548,604\nColumns: 3\n$ interval60    &lt;dttm&gt; 2025-04-01, 2025-04-01, 2025-04-01, 2025-04-01, 2025-04…\n$ start_station &lt;dbl&gt; 3022, 3040, 3054, 3280, 3301, 3396, 3158, 3371, 3374, 30…\n$ Trip_Count    &lt;int&gt; 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…\n\n\n\n\n\n\n\n\n\nRows: 252\nColumns: 7\n$ start_station          &lt;dbl&gt; 3005, 3006, 3007, 3008, 3009, 3010, 3012, 3014,…\n$ start_lat              &lt;dbl&gt; 39.94733, 39.95220, 39.94517, 39.98081, 39.9557…\n$ start_lon              &lt;dbl&gt; -75.14403, -75.20311, -75.15993, -75.15067, -75…\n$ Med_Inc                &lt;dbl&gt; 144922, 21064, 58557, 22244, 37674, 88583, 1385…\n$ Percent_Taking_Transit &lt;dbl&gt; 11.742827, 9.418565, 11.401515, 27.430556, 10.8…\n$ Percent_White          &lt;dbl&gt; 86.29640, 46.88109, 62.85341, 39.65227, 60.2169…\n$ Total_Pop              &lt;dbl&gt; 3583, 6156, 4598, 5349, 7375, 3134, 3643, 3914,…\n\n\nRows: 548,604\nColumns: 9\n$ interval60             &lt;dttm&gt; 2025-04-01, 2025-04-01, 2025-04-01, 2025-04-01…\n$ start_station          &lt;dbl&gt; 3022, 3040, 3054, 3280, 3301, 3396, 3158, 3371,…\n$ Trip_Count             &lt;int&gt; 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…\n$ start_lat              &lt;dbl&gt; 39.95472, 39.96289, 39.96250, 39.93968, 39.9502…\n$ start_lon              &lt;dbl&gt; -75.18323, -75.16606, -75.17420, -75.21362, -75…\n$ Med_Inc                &lt;dbl&gt; 29464, 79694, 88936, 39547, 86809, 49493, 61583…\n$ Percent_Taking_Transit &lt;dbl&gt; 5.081301, 14.574899, 11.852149, 25.837629, 25.9…\n$ Percent_White          &lt;dbl&gt; 54.396043, 61.073826, 60.379375, 9.203540, 79.6…\n$ Total_Pop              &lt;dbl&gt; 6267, 2235, 3743, 3955, 1807, 3742, 4029, 3486,…\n\n\nComplete panel rows: 548,604"
   },
   {
     "objectID": "lab_5/lab_5.html#add-time-features",
     "href": "lab_5/lab_5.html#add-time-features",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Add Time Features",
     "text": "Add Time Features"
   },
   {
     "objectID": "lab_5/lab_5.html#join-weather-data",
     "href": "lab_5/lab_5.html#join-weather-data",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Join Weather Data",
     "text": "Join Weather Data"
   },
   {
     "objectID": "lab_5/lab_5.html#visualize-lag-correlations",
     "href": "lab_5/lab_5.html#visualize-lag-correlations",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Visualize Lag Correlations",
     "text": "Visualize Lag Correlations\n\n\n\n\n\n\n\n\n\n\n\nTraining observations: 374,745 \n\n\nTesting observations: 161,352 \n\n\nTraining date range: 20180 to 20242 \n\n\nTesting date range: 20243 to 20269 \n\n\n#BUILD PREDICTIVE MODELS"
   },
   {
     "objectID": "lab_5/lab_5.html#model-1-baseline-time-weather",
     "href": "lab_5/lab_5.html#model-1-baseline-time-weather",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Model 1: Baseline (Time + Weather)",
     "text": "Model 1: Baseline (Time + Weather)"
   },
   {
     "objectID": "lab_5/lab_5.html#model-2-add-temporal-lags",
     "href": "lab_5/lab_5.html#model-2-add-temporal-lags",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Model 2: Add Temporal Lags",
     "text": "Model 2: Add Temporal Lags"
   },
   {
     "objectID": "lab_5/lab_5.html#model-3-add-demographics",
     "href": "lab_5/lab_5.html#model-3-add-demographics",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Model 3: Add Demographics",
     "text": "Model 3: Add Demographics"
   },
   {
     "objectID": "lab_5/lab_5.html#model-4-add-station-fixed-effects",
     "href": "lab_5/lab_5.html#model-4-add-station-fixed-effects",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Model 4: Add Station Fixed Effects",
     "text": "Model 4: Add Station Fixed Effects"
   },
   {
     "objectID": "lab_5/lab_5.html#model-5-add-rush-hour-interaction",
     "href": "lab_5/lab_5.html#model-5-add-rush-hour-interaction",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Model 5: Add Rush Hour Interaction",
     "text": "Model 5: Add Rush Hour Interaction"
   },
   {
     "objectID": "lab_5/lab_5.html#calculate-predictions-and-mae",
     "href": "lab_5/lab_5.html#calculate-predictions-and-mae",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Calculate Predictions and MAE",
     "text": "Calculate Predictions and MAE\n\n\n\nMean Absolute Error by Model (Test Set, Q2 2025)\n\n\nModel\nMAE (trips)\n\n\n\n\n1. Time + Weather\n0.84\n\n\n2. + Temporal Lags\n0.69\n\n\n3. + Demographics\n0.69\n\n\n4. + Station FE\n0.69\n\n\n5. + Rush Hour Interaction\n0.71"
   },
   {
     "objectID": "lab_5/lab_5.html#visualize-model-comparison",
     "href": "lab_5/lab_5.html#visualize-model-comparison",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Visualize Model Comparison",
     "text": "Visualize Model Comparison\n\n\n\n\n\n\n\n\n\n\nCompare results to Q1 2025: # Visualize Compare results ## MAE comparison"
   },
   {
     "objectID": "lab_5/lab_5.html#daily-trips-comparison",
     "href": "lab_5/lab_5.html#daily-trips-comparison",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Daily trips comparison",
     "text": "Daily trips comparison"
   },
   {
     "objectID": "lab_5/lab_5.html#hourly-pattern-comparison",
     "href": "lab_5/lab_5.html#hourly-pattern-comparison",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Hourly pattern comparison",
     "text": "Hourly pattern comparison\n\n\n\n\n\n\n\n\n\n-   How do MAE values compare? Why might they differ?\n-   Are temporal patterns different (e.g., summer vs. winter)?\n-   Which features are most important in your quarter?\nMAE values are consistently higher in Q2 2025 than in Q1 2025. One likely reason is that overall bike-share demand is higher in Q2, so prediction errors measured in absolute trip counts also become larger. In addition, Q2 covers April to June, when warmer and more variable weather may lead to more complex travel behavior. Compared with the colder and more commute-driven patterns in Q1, Q2 likely includes more discretionary and weather-sensitive trips, which makes demand harder to predict and increases model error.\nQ1 and Q2 show similar hourly structures: weekday demand peaks during the morning and evening commute periods, while weekend demand stays elevated from mid-day to early evening. However, the daily ridership comparison suggests a clearer difference across quarters. In Q1, daily trips generally increase over time, while Q2 shows a more fluctuating pattern, with alternating periods of increase and decline. A likely explanation is seasonal weather variation. Bike-share demand may be lower when temperatures are either too cold or too hot, and Q2 appears to be more sensitive to these changes. In particular, the drop in temperature during May may be associated with the first decline in trips, while the sustained temperature increase in June may help explain the second decline.\nThe most important features in my quarter are the temporal lag variables. This is clear from the large drop in MAE from Model 1 to Model 2, after adding lag1Hour, lag3Hours, and lag1day. This suggests that recent station demand is the strongest predictor of future demand in Q2 2025."
   },
   {
     "objectID": "lab_5/lab_5.html#part-2-error-analysis",
     "href": "lab_5/lab_5.html#part-2-error-analysis",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Part 2: Error Analysis",
     "text": "Part 2: Error Analysis\nAnalyze your model’s errors in detail:\n\nSpatial patterns:\n\nCreate error maps\nIdentify neighborhoods with high errors\nHypothesize why (missing features? different demand patterns?)\n\nTemporal patterns:\n\nWhen are errors highest?\nDo certain hours/days have systematic under/over-prediction?\nAre there seasonal patterns?\n\nDemographic patterns:\n\nRelate errors to census characteristics\nAre certain communities systematically harder to predict?\nWhat are the equity implications?"
   },
   {
     "objectID": "lab_5/lab_5.html#observed-vs.-predicted",
     "href": "lab_5/lab_5.html#observed-vs.-predicted",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Observed vs. Predicted",
     "text": "Observed vs. Predicted"
   },
   {
     "objectID": "lab_5/lab_5.html#spatial-error-patterns",
     "href": "lab_5/lab_5.html#spatial-error-patterns",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Spatial Error Patterns",
     "text": "Spatial Error Patterns"
   },
   {
     "objectID": "lab_5/lab_5.html#temporal-error-patterns",
     "href": "lab_5/lab_5.html#temporal-error-patterns",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Temporal Error Patterns",
     "text": "Temporal Error Patterns"
   },
   {
     "objectID": "lab_5/lab_5.html#errors-and-demographics",
     "href": "lab_5/lab_5.html#errors-and-demographics",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Errors and Demographics",
     "text": "Errors and Demographics\n\n\n\n\n\n\n\n\n\nSpatial patterns errors are concentrated in the central part of Philadelphia, where demand is also highest. This suggests that the model struggles most at the busiest stations. A likely reason is that these central stations have more complex demand patterns, including commuting, which are not fully captured by the current model.\nTemporal patterns errors are highest during PM Rush, and they are also relatively high during AM Rush and Mid-Day, while overnight errors are lowest. This means the model performs worst when demand is high and changes quickly. The observed-versus-predicted plots also suggest some under-prediction at peak demand levels. Q2 likely has stronger seasonal and weather-related variation, which may further increase daytime prediction error.\nDemographic prediction errors are associated with neighborhood characteristics. Errors tend to increase with median income and % White, and decrease as transit usage increases. This suggests that some communities may be systematically harder to predict, but these should be interpreted as associations rather than causal effects. The equity concern is that if errors are concentrated in certain communities, forecast-based service decisions may also become uneven."
   },
   {
     "objectID": "lab_5/lab_5.html#part-3-feature-engineering-model-improvement",
     "href": "lab_5/lab_5.html#part-3-feature-engineering-model-improvement",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Part 3: Feature Engineering & model improvement",
     "text": "Part 3: Feature Engineering & model improvement\n\n\n\nMAE Comparison: Baseline vs. Feature-Engineered Model (Q2 2025)\n\n\nModel\nMAE\n\n\n\n\nModel 2 Baseline\n0.690\n\n\nModel 6 + New Features\n0.673\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nMAE Comparison: Baseline, Linear FE Model, and Poisson FE Model (Q2 2025)\n\n\nModel\nMAE\n\n\n\n\nModel 2 Baseline\n0.690\n\n\nModel 6 Linear\n0.673\n\n\nModel 6 Poisson\n0.692\n\n\n\n\n\nIn this part, I added three new features to Model 2: same_hour_last_week_q2, dist_center_city_q2, and perfect_weather_q2. After adding these variables, the test-set MAE decreased from 0.690 to 0.673, which indicates a small improvement in predictive accuracy.\nI chose same_hour_last_week_q2 because the model showed larger errors during peak periods, and demand at the same hour in the previous week may help capture recurring temporal patterns. I added dist_center_city_q2 because the spatial error maps suggested that both higher errors and higher demand were concentrated in the central city, so distance to Center City may help explain this spatial variation. I also added perfect_weather_q2 because ridership in Q2 appeared to be more sensitive to seasonal and weather conditions, with demand patterns moving together with changes in temperature.\nThese features improved model performance, but only slightly. Among them, same_hour_last_week_q2 and dist_center_city_q2 were more useful, while perfect_weather_q2 had a weaker effect. This suggests that the model is still missing other important factors, such as holidays and other contextual influences that affect ridership. In addition, the Poisson model did not improve performance and actually performed worse than Model 6."
   },
   {
     "objectID": "lab_5/lab_5.html#part-4-critical-reflection",
     "href": "lab_5/lab_5.html#part-4-critical-reflection",
-    "title": "Bikeshare_SpaceTime_Prediction",
+    "title": "Lab 5: Bikeshare SpaceTime Prediction",
     "section": "Part 4: Critical Reflection",
     "text": "Part 4: Critical Reflection\nWrite 1-2 paragraphs addressing:\n\nOperational implications:\n\nIs your final MAE “good enough” for Indego to use?\nWhen do prediction errors cause problems for rebalancing?\nWould you recommend deploying this system? Under what conditions?\n\nEquity considerations:\n\nDo prediction errors disproportionately affect certain neighborhoods?\nCould this system worsen existing disparities in bike access?\nWhat safeguards would you recommend?\n\nModel limitations:\n\nWhat patterns is your model missing?\nWhat assumptions might not hold in real deployment?\nHow would you improve this with more time/data?\n\n\nMy final model is useful, but it is not accurate enough to support fully automated rebalancing on its own. An MAE of about 0.673 suggests that it can help Indego identify overall demand patterns, but prediction errors would still create operational problems when they occur at high-demand stations or during peak hours. For that reason, this model is better understood as an initial decision-support tool rather than a replacement for human rebalancing decisions.\nAt the same time, the model also has equity and methodological limitations. My results suggest that prediction errors are not evenly distributed across neighborhoods, so direct deployment could unintentionally worsen existing inequalities in bike access. To reduce that risk, Indego should monitor errors by neighborhood, provide targeted safeguards for underserved areas, and avoid relying entirely on automated predictions. The current model is still a preliminary version.With more time and data, I would improve the model in three ways. First, I would add richer temporal and event variables, such as holidays, school calendars, and major events, because the current model still shows large variation across certain dates. Second, I would include more detailed spatial and station-level information, such as station type, nearby points of interest, and bike network conditions, to better explain why high-demand central areas still have relatively large errors. Finally, I would add more demographic and socioeconomic variables, such as income, race, and education, because the error analysis suggests that these neighborhood characteristics are associated with variation in prediction errors."
   },
