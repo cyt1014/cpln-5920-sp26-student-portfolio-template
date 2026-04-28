@@ -143,16 +143,6 @@ We compare two forecasting scales because they serve different policy needs.
 :::
 :::::
 
-## From Data to Policy Targeting
-
-::: incremental
-1.  Use recent eviction filing history.
-2.  Add tract-level housing conditions.
-3.  Predict future filing risk.
-4.  Identify elevated-risk census tracts.
-5.  Support rental assistance targeting.
-:::
-
 ## Model Performance Summary
 
 | Model            | Scale     | Test MAE | Test RMSE | Correlation |
@@ -164,9 +154,9 @@ We compare two forecasting scales because they serve different policy needs.
 
 ## Rolling Monthly Baseline Has the Lowest Error
 
-::: {.compact-model-table}
+::: compact-model-table
 | Criterion | Best model | Scale | MAE | RMSE | Correlation |
-|---|---|---|---:|---:|---:|
+|----|----|----|---:|---:|---:|
 | Lowest error | Rolling monthly baseline | Monthly | 1.657 | 2.441 | 0.678 |
 | Strongest ranking | Quarterly temporal baseline | Quarterly | 3.718 | 5.422 | 0.779 |
 | Richer covariates | Monthly NB covariates | Monthly | 2.137 | 4.265 | 0.594 |

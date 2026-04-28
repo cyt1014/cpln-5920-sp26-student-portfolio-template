@@ -143,16 +143,6 @@ We compare two forecasting scales because they serve different policy needs.
 :::
 :::::
 
-## From Data to Policy Targeting
-
-::: incremental
-1.  Use recent eviction filing history.
-2.  Add tract-level housing conditions.
-3.  Predict future filing risk.
-4.  Identify elevated-risk census tracts.
-5.  Support rental assistance targeting.
-:::
-
 ## Model Performance Summary
 
 | Model            | Scale     | Test MAE | Test RMSE | Correlation |
