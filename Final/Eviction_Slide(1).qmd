@@ -15,6 +15,20 @@ execute:
   message: false
 ---
 
+```{=html}
+<style>
+.reveal .compact-model-table table {
+  font-size: 0.54em;
+  line-height: 1.15;
+}
+.reveal .compact-model-table th,
+.reveal .compact-model-table td {
+  padding: 0.22em 0.45em;
+  white-space: nowrap;
+}
+</style>
+```
+
 ## The Policy Problem
 
 -   Eviction filings are not evenly distributed across Philadelphia.
@@ -150,11 +164,13 @@ We compare two forecasting scales because they serve different policy needs.
 
 ## Rolling Monthly Baseline Has the Lowest Error
 
-| Selection criterion | Best model                         | Scale     | Test MAE | Test RMSE | Correlation |
-|---------------------|------------------------------------|-----------|---------:|----------:|------------:|
-| Lowest error        | Rolling-mean temporal baseline     | Monthly   |    1.657 |     2.441 |       0.678 |
-| Strongest ranking   | Simple temporal baseline           | Quarterly |    3.718 |     5.422 |       0.779 |
-| Richer covariates   | NB with rent and income covariates | Monthly   |    2.137 |     4.265 |       0.594 |
+::: {.compact-model-table}
+| Criterion | Best model | Scale | MAE | RMSE | Correlation |
+|---|---|---|---:|---:|---:|
+| Lowest error | Rolling monthly baseline | Monthly | 1.657 | 2.441 | 0.678 |
+| Strongest ranking | Quarterly temporal baseline | Quarterly | 3.718 | 5.422 | 0.779 |
+| Richer covariates | Monthly NB covariates | Monthly | 2.137 | 4.265 | 0.594 |
+:::
 
 ------------------------------------------------------------------------
 

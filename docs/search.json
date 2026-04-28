@@ -487,7 +487,7 @@
     "href": "Final/Eviction_Slide.html#rolling-monthly-baseline-has-the-lowest-error",
     "title": "Philadelphia Eviction Forecasting Model",
     "section": "Rolling Monthly Baseline Has the Lowest Error",
-    "text": "Rolling Monthly Baseline Has the Lowest Error\n\n\n\n\n\n\n\n\n\n\n\nSelection criterion\nBest model\nScale\nTest MAE\nTest RMSE\nCorrelation\n\n\n\n\nLowest error\nRolling-mean temporal baseline\nMonthly\n1.657\n2.441\n0.678\n\n\nStrongest ranking\nSimple temporal baseline\nQuarterly\n3.718\n5.422\n0.779\n\n\nRicher covariates\nNB with rent and income covariates\nMonthly\n2.137\n4.265\n0.594"
+    "text": "Rolling Monthly Baseline Has the Lowest Error\n\n\n\n\n\n\n\n\n\n\n\n\nCriterion\nBest model\nScale\nMAE\nRMSE\nCorrelation\n\n\n\n\nLowest error\nRolling monthly baseline\nMonthly\n1.657\n2.441\n0.678\n\n\nStrongest ranking\nQuarterly temporal baseline\nQuarterly\n3.718\n5.422\n0.779\n\n\nRicher covariates\nMonthly NB covariates\nMonthly\n2.137\n4.265\n0.594"
   },
   {
     "objectID": "Final/Eviction_Slide.html#model-performance-summary-1",
@@ -732,7 +732,7 @@
     "href": "Final/Eviction_Slide(1).html#rolling-monthly-baseline-has-the-lowest-error",
     "title": "Philadelphia Eviction Forecasting Model",
     "section": "Rolling Monthly Baseline Has the Lowest Error",
-    "text": "Rolling Monthly Baseline Has the Lowest Error\n\n\n\n\n\n\n\n\n\n\n\nSelection criterion\nBest model\nScale\nTest MAE\nTest RMSE\nCorrelation\n\n\n\n\nLowest error\nRolling-mean temporal baseline\nMonthly\n1.657\n2.441\n0.678\n\n\nStrongest ranking\nSimple temporal baseline\nQuarterly\n3.718\n5.422\n0.779\n\n\nRicher covariates\nNB with rent and income covariates\nMonthly\n2.137\n4.265\n0.594"
+    "text": "Rolling Monthly Baseline Has the Lowest Error\n\n\n\n\n\n\n\n\n\n\n\n\nCriterion\nBest model\nScale\nMAE\nRMSE\nCorrelation\n\n\n\n\nLowest error\nRolling monthly baseline\nMonthly\n1.657\n2.441\n0.678\n\n\nStrongest ranking\nQuarterly temporal baseline\nQuarterly\n3.718\n5.422\n0.779\n\n\nRicher covariates\nMonthly NB covariates\nMonthly\n2.137\n4.265\n0.594"
   },
   {
     "objectID": "Final/Eviction_Slide(1).html#model-performance-summary-1",
