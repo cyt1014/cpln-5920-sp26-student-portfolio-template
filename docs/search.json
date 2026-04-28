@@ -469,13 +469,6 @@
     "text": "Monthly vs. Quarterly Forecasting\nWe compare two forecasting scales because they serve different policy needs.\n\n\nMonthly\n\nShorter intervention window\nMore sensitive to recent changes\nBetter for rapid outreach\nMore month-to-month noise\n\n\nQuarterly\n\nSmoother filing patterns\nBetter for broader planning\nLess reactive to sudden spikes\nLonger delay before intervention"
   },
   {
-    "objectID": "Final/Eviction_Slide.html#from-data-to-policy-targeting",
-    "href": "Final/Eviction_Slide.html#from-data-to-policy-targeting",
-    "title": "Philadelphia Eviction Forecasting Model",
-    "section": "From Data to Policy Targeting",
-    "text": "From Data to Policy Targeting\n\nUse recent eviction filing history.\nAdd tract-level housing conditions.\nPredict future filing risk.\nIdentify elevated-risk census tracts.\nSupport rental assistance targeting."
-  },
-  {
     "objectID": "Final/Eviction_Slide.html#model-performance-summary",
     "href": "Final/Eviction_Slide.html#model-performance-summary",
     "title": "Philadelphia Eviction Forecasting Model",
@@ -501,7 +494,7 @@
     "href": "Final/Eviction_Slide.html#monthly-forecasts-better-match-time-sensitive-outreach",
     "title": "Philadelphia Eviction Forecasting Model",
     "section": "Monthly Forecasts Better Match Time-Sensitive Outreach",
-    "text": "Monthly Forecasts Better Match Time-Sensitive Outreach\n\nRental assistance is often time-sensitive.\nMonthly forecasts identify risk closer to when filings may occur.\nRecent filing history and rolling averages capture short-term persistence.\nThis makes monthly prediction better suited for early outreach and prevention."
+    "text": "Monthly Forecasts Better Match Time-Sensitive Outreach\n\nRental assistance is often time-sensitive.\nMonthly forecasts provide more timely identification of eviction risk.\nRecent filing history and rolling averages capture short-term persistence.\nThis makes monthly prediction better suited for early outreach and prevention."
   },
   {
     "objectID": "Final/Eviction_Slide.html#monthly-model-diagnostics",
@@ -712,13 +705,6 @@
     "title": "Philadelphia Eviction Forecasting Model",
     "section": "Monthly vs. Quarterly Forecasting",
     "text": "Monthly vs. Quarterly Forecasting\nWe compare two forecasting scales because they serve different policy needs.\n\n\nMonthly\n\nShorter intervention window\nMore sensitive to recent changes\nBetter for rapid outreach\nMore month-to-month noise\n\n\nQuarterly\n\nSmoother filing patterns\nBetter for broader planning\nLess reactive to sudden spikes\nLonger delay before intervention"
-  },
-  {
-    "objectID": "Final/Eviction_Slide(1).html#from-data-to-policy-targeting",
-    "href": "Final/Eviction_Slide(1).html#from-data-to-policy-targeting",
-    "title": "Philadelphia Eviction Forecasting Model",
-    "section": "From Data to Policy Targeting",
-    "text": "From Data to Policy Targeting\n\nUse recent eviction filing history.\nAdd tract-level housing conditions.\nPredict future filing risk.\nIdentify elevated-risk census tracts.\nSupport rental assistance targeting."
   },
   {
     "objectID": "Final/Eviction_Slide(1).html#model-performance-summary",

@@ -23,7 +23,7 @@ website:
           - href: lab_5/lab_5.qmd
             text: "Lab 5: Bikeshare SpaceTime Prediction"
           - href: Final/Final_Eviction
-            text: "Philadelphia Eviction Forecasting Model"
+            text: "Final: Philadelphia Eviction Forecasting Model"
 format:
   html:
     theme: cosmo

@@ -156,7 +156,7 @@ We compare two forecasting scales because they serve different policy needs.
 
 ::: compact-model-table
 | Criterion | Best model | Scale | MAE | RMSE | Correlation |
-|----|----|----|---:|---:|---:|
+|------------|------------|------------|-----------:|-----------:|-----------:|
 | Lowest error | Rolling monthly baseline | Monthly | 1.657 | 2.441 | 0.678 |
 | Strongest ranking | Quarterly temporal baseline | Quarterly | 3.718 | 5.422 | 0.779 |
 | Richer covariates | Monthly NB covariates | Monthly | 2.137 | 4.265 | 0.594 |
@@ -174,7 +174,7 @@ We compare two forecasting scales because they serve different policy needs.
 ## Monthly Forecasts Better Match Time-Sensitive Outreach
 
 -   Rental assistance is often time-sensitive.
--   Monthly forecasts identify risk closer to when filings may occur.
+-   Monthly forecasts provide more timely identification of eviction risk. 
 -   Recent filing history and rolling averages capture short-term persistence.
 -   This makes monthly prediction better suited for early outreach and prevention.
 
