@@ -1,5 +1,14 @@
 /.quarto/
 **/*.quarto_ipynb
+.RData
+.Rhistory
+Final/.RData
+Final/.Rhistory
+Final/_render_eviction_slide/
+Final/data/
+Final/*_files/
+_freeze/Final/
+_freeze/site_libs/revealjs/
 mid/data/assessments.csv
 mid/data/cv_m7.rds
 mid/data/opa_properties_public.csv

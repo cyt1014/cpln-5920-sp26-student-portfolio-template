@@ -1,0 +1,463 @@
+---
+title: "CPLN 5920 Final Project: Eviction Filing Prediction"
+format:
+  html:
+    code-fold: show
+    code-tools: true
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    theme: cosmo
+editor: visual
+execute:
+  warning: false
+  message: false
+---
+
+# Introduction
+
+This report builds a monthly tract-level prediction workflow for Philadelphia eviction filings. The modeling goal is twofold:
+
+1.  Predict next month's filing count for each census tract.
+2.  Flag which tracts are likely to enter a high-risk state.
+
+Following the logic from the EDA, I use monthly data as the main unit of analysis because it preserves short-term dynamics and supports early-warning forecasting.
+
+```{r setup}
+#| include: false
+library(tidyverse)
+library(lubridate)
+library(sf)
+library(tidycensus)
+library(MASS)
+library(knitr)
+library(kableExtra)
+library(patchwork)
+library(viridis)
+library(here)
+library(broom)
+
+options(scipen = 999)
+set.seed(5920)
+
+plotTheme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 10),
+    plot.caption = element_text(size = 8),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 11, face = "bold"),
+    panel.grid.minor = element_blank(),
+    legend.position = "right"
+  )
+
+mapTheme <- theme_void() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 10),
+    plot.caption = element_text(size = 8),
+    legend.position = "right"
+  )
+
+score_count_model <- function(data, actual, predicted) {
+  tibble(
+    MAE = mean(abs(data[[actual]] - data[[predicted]]), na.rm = TRUE),
+    RMSE = sqrt(mean((data[[actual]] - data[[predicted]])^2, na.rm = TRUE)),
+    Correlation = cor(data[[actual]], data[[predicted]], use = "complete.obs")
+  )
+}
+
+score_classification <- function(data, truth, pred) {
+  tp <- sum(data[[truth]] == 1 & data[[pred]] == 1, na.rm = TRUE)
+  fp <- sum(data[[truth]] == 0 & data[[pred]] == 1, na.rm = TRUE)
+  fn <- sum(data[[truth]] == 1 & data[[pred]] == 0, na.rm = TRUE)
+  tn <- sum(data[[truth]] == 0 & data[[pred]] == 0, na.rm = TRUE)
+
+  precision <- ifelse(tp + fp == 0, NA, tp / (tp + fp))
+  recall <- ifelse(tp + fn == 0, NA, tp / (tp + fn))
+  accuracy <- (tp + tn) / (tp + tn + fp + fn)
+  f1 <- ifelse(is.na(precision) | is.na(recall) | precision + recall == 0,
+               NA,
+               2 * precision * recall / (precision + recall))
+
+  tibble(
+    Accuracy = accuracy,
+    Precision = precision,
+    Recall = recall,
+    F1 = f1
+  )
+}
+```
+
+```{r set-census-api-key}
+#| include: false
+if (Sys.getenv("CENSUS_API_KEY") != "") {
+  census_api_key(Sys.getenv("CENSUS_API_KEY"), install = FALSE, overwrite = FALSE)
+}
+```
+
+# Load and Prepare Data
+
+```{r load-data}
+evict_raw <- read_csv(here("data", "eviction.csv"), show_col_types = FALSE)
+
+glimpse(evict_raw)
+
+evict <- evict_raw %>%
+  mutate(
+    GEOID = as.character(GEOID),
+    month_date = my(month),
+    year = year(month_date),
+    month_num = month(month_date),
+    filings_2020 = as.numeric(filings_2020),
+    filings_avg = as.numeric(filings_avg),
+    filings_avg_prepandemic_baseline = as.numeric(filings_avg_prepandemic_baseline)
+  ) %>%
+  dplyr::select(-last_updated)
+
+cat("Rows:", nrow(evict), "\n")
+cat("Unique tracts:", n_distinct(evict$GEOID), "\n")
+cat("Date range:", min(evict$month_date), "to", max(evict$month_date), "\n")
+```
+
+```{r pull-renter-households}
+renters_acs <- tryCatch(
+  {
+    get_acs(
+      geography = "tract",
+      variables = "B25003_003",
+      state = "PA",
+      county = "Philadelphia",
+      year = 2023,
+      geometry = FALSE
+    ) %>%
+      transmute(GEOID, renters = estimate)
+  },
+  error = function(e) {
+    stop("ACS renter-household data could not be downloaded. Check your Census API key and internet connection.")
+  }
+)
+
+evict <- evict %>%
+  left_join(renters_acs, by = "GEOID")
+
+summary(evict$renters)
+```
+
+```{r create-panel-features}
+evict_panel <- evict %>%
+  arrange(GEOID, month_date) %>%
+  group_by(GEOID) %>%
+  mutate(
+    filings_rate_1k = (filings_2020 / renters) * 1000,
+    filings_next = lead(filings_2020, 1),
+    filings_next_rate_1k = lead(filings_rate_1k, 1),
+    lag_1m = lag(filings_2020, 1),
+    lag_2m = lag(filings_2020, 2),
+    lag_3m = lag(filings_2020, 3),
+    change_1m = filings_2020 - lag_1m,
+    change_3m = filings_2020 - lag_3m,
+    rolling_mean_3m = (lag_1m + lag_2m + lag_3m) / 3
+  ) %>%
+  ungroup() %>%
+  mutate(
+    month_index = dense_rank(month_date),
+    racial_majority = factor(racial_majority),
+    month_factor = factor(month_num, levels = 1:12, labels = month.abb)
+  )
+
+model_data <- evict_panel %>%
+  filter(
+    !is.na(filings_next),
+    !is.na(lag_1m),
+    !is.na(lag_2m),
+    !is.na(lag_3m),
+    !is.na(renters),
+    renters > 0
+  )
+
+model_data %>%
+  summarise(
+    rows = n(),
+    tracts = n_distinct(GEOID),
+    avg_filing = mean(filings_next, na.rm = TRUE),
+    pct_zero = mean(filings_next == 0, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Modeling Dataset Summary", digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+The modeling dataset keeps monthly observations with enough history to calculate dynamic predictors. Each row uses information known at month `t` to predict filings at month `t+1`.
+
+# Time Split
+
+To avoid leakage, I split the panel by time instead of using a random train-test split.
+
+```{r create-time-split}
+split_table <- tibble(
+  month_date = sort(unique(model_data$month_date))
+) %>%
+  mutate(
+    data_split = case_when(
+      month_date <= ymd("2025-02-01") ~ "Train",
+      month_date <= ymd("2025-08-01") ~ "Validation",
+      TRUE ~ "Test"
+    )
+  )
+
+model_data <- model_data %>%
+  left_join(split_table, by = "month_date")
+
+split_table %>%
+  count(data_split, name = "months") %>%
+  kable(caption = "Time-Based Split", digits = 0) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+train_data <- model_data %>% filter(data_split == "Train")
+validation_data <- model_data %>% filter(data_split == "Validation")
+test_data <- model_data %>% filter(data_split == "Test")
+```
+
+# Exploratory Check Before Modeling
+
+```{r visualize-target}
+p1 <- ggplot(train_data, aes(x = filings_next)) +
+  geom_histogram(bins = 40, fill = "#3182bd", color = "white") +
+  labs(
+    title = "Distribution of Next-Month Filings",
+    subtitle = "Training sample",
+    x = "Next-month filings",
+    y = "Count"
+  ) +
+  plotTheme
+
+p2 <- train_data %>%
+  group_by(month_date) %>%
+  summarise(avg_next = mean(filings_next, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = month_date, y = avg_next)) +
+  geom_line(color = "#08519c", linewidth = 1) +
+  labs(
+    title = "Average Next-Month Filings Over Time",
+    x = "Month",
+    y = "Average filings"
+  ) +
+  plotTheme
+
+p1 + p2
+```
+
+The target remains right-skewed with many zeros, so count models are a natural starting point. I compare a naive baseline, a Poisson model, and a negative binomial model.
+
+# Baseline and Count Models
+
+```{r fit-models}
+model_formula <- filings_next ~
+  lag_1m +
+  lag_3m +
+  change_1m +
+  rolling_mean_3m +
+  filings_avg +
+  filings_avg_prepandemic_baseline +
+  racial_majority +
+  month_factor +
+  offset(log(renters))
+
+poisson_model <- glm(
+  formula = model_formula,
+  data = train_data,
+  family = poisson(link = "log")
+)
+
+nb_model <- MASS::glm.nb(
+  formula = model_formula,
+  data = train_data
+)
+
+cat("Poisson AIC:", AIC(poisson_model), "\n")
+cat("Negative binomial AIC:", AIC(nb_model), "\n")
+```
+
+```{r score-models}
+score_predictions <- function(data, split_name) {
+  baseline_scored <- data %>%
+    mutate(pred_next = pmax(lag_1m, 0)) %>%
+    score_count_model("filings_next", "pred_next") %>%
+    mutate(model = "Baseline: lag_1m", split = split_name)
+
+  poisson_scored <- data %>%
+    mutate(pred_next = predict(poisson_model, newdata = data, type = "response")) %>%
+    score_count_model("filings_next", "pred_next") %>%
+    mutate(model = "Poisson", split = split_name)
+
+  nb_scored <- data %>%
+    mutate(pred_next = predict(nb_model, newdata = data, type = "response")) %>%
+    score_count_model("filings_next", "pred_next") %>%
+    mutate(model = "Negative Binomial", split = split_name)
+
+  bind_rows(baseline_scored, poisson_scored, nb_scored) %>%
+    dplyr::select(split, model, everything())
+}
+
+validation_scores <- score_predictions(validation_data, "Validation")
+test_scores <- score_predictions(test_data, "Test")
+
+model_comparison <- bind_rows(validation_scores, test_scores)
+
+model_comparison %>%
+  mutate(across(c(MAE, RMSE, Correlation), round, 3)) %>%
+  kable(caption = "Model Comparison Across Time Splits") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+```{r visualize-model-comparison}
+ggplot(model_comparison, aes(x = model, y = RMSE, fill = split)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("Validation" = "#9ecae1", "Test" = "#08519c")) +
+  labs(
+    title = "Out-of-Sample Model Performance",
+    subtitle = "Lower RMSE indicates better forecasting accuracy",
+    x = NULL,
+    y = "RMSE"
+  ) +
+  plotTheme
+```
+
+# Main Model Interpretation
+
+I use the negative binomial model as the main specification because the EDA suggested overdispersion in filing counts.
+
+```{r interpret-main-model}
+nb_tidy <- broom::tidy(nb_model, conf.int = TRUE, exponentiate = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  arrange(desc(estimate))
+
+nb_tidy %>%
+  dplyr::select(term, estimate, conf.low, conf.high, p.value) %>%
+  mutate(across(c(estimate, conf.low, conf.high, p.value), round, 3)) %>%
+  slice(1:15) %>%
+  kable(
+    caption = "Negative Binomial Model: Incidence Rate Ratios",
+    col.names = c("Term", "IRR", "Lower CI", "Upper CI", "p-value")
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+The incidence rate ratios help show whether a one-unit increase in each predictor is associated with higher or lower expected filing counts in the next month, holding the other variables constant.
+
+# Identify High-Risk Tracts
+
+To translate predicted counts into an early-warning tool, I define high risk using the top decile of next-month filing rates per 1,000 renter households in the training sample.
+
+```{r define-risk-threshold}
+risk_threshold <- quantile(train_data$filings_next_rate_1k, probs = 0.90, na.rm = TRUE)
+
+cat("High-risk threshold (top 10% of next-month filing rates per 1,000 renters):",
+    round(risk_threshold, 3), "\n")
+```
+
+```{r score-risk}
+test_scored <- test_data %>%
+  mutate(
+    pred_next = predict(nb_model, newdata = test_data, type = "response"),
+    pred_next_rate_1k = (pred_next / renters) * 1000,
+    high_risk_true = if_else(filings_next_rate_1k >= risk_threshold, 1, 0),
+    high_risk_pred = if_else(pred_next_rate_1k >= risk_threshold, 1, 0)
+  )
+
+risk_scores <- score_classification(test_scored, "high_risk_true", "high_risk_pred")
+
+risk_scores %>%
+  mutate(across(everything(), round, 3)) %>%
+  kable(caption = "High-Risk Classification Performance on Test Data") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+```{r top-risk-tracts}
+latest_forecast <- test_scored %>%
+  filter(month_date == max(month_date, na.rm = TRUE)) %>%
+  arrange(desc(pred_next_rate_1k)) %>%
+  transmute(
+    GEOID,
+    racial_majority,
+    current_month = month_date,
+    predicted_next_filings = round(pred_next, 2),
+    predicted_next_rate_1k = round(pred_next_rate_1k, 2),
+    predicted_high_risk = high_risk_pred
+  )
+
+latest_forecast %>%
+  slice(1:15) %>%
+  kable(caption = "Top 15 Tracts by Predicted Next-Month Filing Risk") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+# Predicted Risk Map
+
+```{r load-tract-geometry}
+tract_shp <- list.files(
+  here("data", "Census_Tracts_2010-shp"),
+  pattern = "\\.shp$",
+  full.names = TRUE
+)[1]
+
+philly_tracts <- st_read(tract_shp, quiet = TRUE)
+
+geoid_field <- names(philly_tracts)[stringr::str_detect(names(philly_tracts), "GEOID")][1]
+
+philly_tracts <- philly_tracts %>%
+  mutate(GEOID = as.character(.data[[geoid_field]]))
+
+forecast_map <- philly_tracts %>%
+  left_join(latest_forecast, by = "GEOID")
+```
+
+```{r map-risk}
+p_rate <- ggplot(forecast_map) +
+  geom_sf(aes(fill = predicted_next_rate_1k), color = NA) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    na.value = "gray90",
+    name = "Predicted filings\nper 1,000 renters"
+  ) +
+  labs(
+    title = "Forecasted Eviction Filing Risk by Census Tract",
+    subtitle = paste("Prediction target:", format(max(latest_forecast$current_month) %m+% months(1), "%B %Y"))
+  ) +
+  mapTheme
+
+p_binary <- ggplot(forecast_map) +
+  geom_sf(aes(fill = factor(predicted_high_risk)), color = NA) +
+  scale_fill_manual(
+    values = c("0" = "gray85", "1" = "#d7301f"),
+    labels = c("0" = "Not high risk", "1" = "High risk"),
+    na.translate = FALSE,
+    name = "Risk class"
+  ) +
+  labs(
+    title = "Predicted High-Risk Tracts",
+    subtitle = "Tracts above the top-decile training threshold"
+  ) +
+  mapTheme
+
+p_rate + p_binary
+```
+
+# Observed vs Predicted
+
+```{r observed-vs-predicted}
+ggplot(test_scored, aes(x = filings_next, y = pred_next)) +
+  geom_point(alpha = 0.25, color = "#3182bd") +
+  geom_abline(slope = 1, intercept = 0, color = "#d7301f", linetype = "dashed") +
+  labs(
+    title = "Observed vs Predicted Next-Month Filings",
+    subtitle = "Negative binomial model on the test period",
+    x = "Observed filings",
+    y = "Predicted filings"
+  ) +
+  plotTheme
+```
+
+# Conclusion
+
+This workflow turns the EDA into a tract-month forecasting pipeline. The model uses recent filing dynamics, historical tract conditions, seasonality, and renter exposure to predict next-month filings, then converts those predictions into a high-risk screening rule. In a policy setting, the final output can be used to prioritize outreach, rental assistance, or legal support in tracts where predicted filing rates are expected to spike.
